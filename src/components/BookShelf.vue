@@ -27,9 +27,23 @@
 
       <!-- 窗口控制按钮 -->
       <div class="window-controls">
-        <button class="control-btn minimize-btn">−</button>
-        <button class="control-btn maximize-btn">□</button>
-        <button class="control-btn close-btn">×</button>
+        <button
+          @click="minimizeWindow"
+          class="control-btn minimize-btn"
+          title="最小化"
+        >
+          −
+        </button>
+        <button
+          @click="toggleMaximize"
+          class="control-btn maximize-btn"
+          title="最大化/还原"
+        >
+          □
+        </button>
+        <button @click="closeWindow" class="control-btn close-btn" title="关闭">
+          ×
+        </button>
       </div>
     </div>
 
@@ -60,11 +74,15 @@
 import { ref, computed, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "./BookCard.vue";
 
 // 响应式数据
 const books = ref([]);
 const searchQuery = ref("");
+
+// 获取当前窗口实例
+const appWindow = getCurrentWindow();
 
 // 计算属性 - 过滤书籍
 const filteredBooks = computed(() => {
@@ -156,6 +174,44 @@ function openBook(book) {
 onMounted(() => {
   loadLibrary();
 });
+
+/**
+ * 最小化窗口
+ */
+async function minimizeWindow() {
+  try {
+    await appWindow.minimize();
+  } catch (error) {
+    console.error("最小化窗口失败:", error);
+  }
+}
+
+/**
+ * 最大化/还原窗口
+ */
+async function toggleMaximize() {
+  try {
+    const isMaximized = await appWindow.isMaximized();
+    if (isMaximized) {
+      await appWindow.unmaximize();
+    } else {
+      await appWindow.maximize();
+    }
+  } catch (error) {
+    console.error("切换窗口状态失败:", error);
+  }
+}
+
+/**
+ * 关闭窗口
+ */
+async function closeWindow() {
+  try {
+    await appWindow.close();
+  } catch (error) {
+    console.error("关闭窗口失败:", error);
+  }
+}
 </script>
 
 <style scoped>

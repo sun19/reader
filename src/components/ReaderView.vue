@@ -2,21 +2,22 @@
   <div class="reader-view" :class="{ 'dark-mode': isDarkMode }">
     <!-- 自定义顶部任务栏 -->
     <div class="custom-titlebar">
-      <div class="titlebar-content">
-        <!-- 操作按钮组 -->
-        <div class="action-buttons">
-          <button @click="goBack" class="back-btn">
-            <Icon icon="heroicons:home-20-solid" width="18" height="18" />
-          </button>
-          <h1 class="book-title">
-            {{ currentBook?.title + currentChapterTitle || "未知书籍" }}
-          </h1>
-          <button @click="toggleSettings" class="settings-btn">
-            <Icon icon="heroicons:cog-6-tooth-solid" width="18" height="18" />
-          </button>
-        </div>
+      <!-- 操作按钮组 -->
+      <div class="action-buttons">
+        <button @click="goBack" class="control-btn">
+          <Icon icon="heroicons:home-20-solid" width="18" height="18" />
+        </button>
+        <!-- 添加目录按钮 -->
+        <button @click="toggleToc" class="control-btn" title="目录">
+          <Icon icon="heroicons:list-bullet-20-solid" width="18" height="18" />
+        </button>
+        <button @click="toggleSettings" class="control-btn">
+          <Icon icon="heroicons:cog-6-tooth-solid" width="18" height="18" />
+        </button>
       </div>
-
+      <h1 class="book-title">
+        {{ currentBook?.title + currentChapterTitle || "未知书籍" }}
+      </h1>
       <!-- 窗口控制按钮 -->
       <div class="window-controls">
         <button
@@ -38,6 +39,7 @@
         </button>
       </div>
     </div>
+
     <!-- 阅读内容区域 -->
     <div class="reader-content" ref="contentArea">
       <ChapterContent
@@ -84,6 +86,15 @@
       @update-paragraph-spacing="updateParagraphSpacing"
       @close="showSettings = false"
     />
+
+    <!-- 目录面板 -->
+    <TableOfContents
+      :is-visible="showToc"
+      :chapters="chapters"
+      :current-chapter="currentChapter"
+      @close="showToc = false"
+      @goto-chapter="gotoChapter"
+    />
   </div>
 </template>
 
@@ -104,6 +115,7 @@ import {
   getDefaultOptions,
 } from "../utils/pageCalculator.js";
 import { Icon } from "@iconify/vue";
+import TableOfContents from "./TableOfContents.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -194,6 +206,22 @@ function updateContainerSize() {
       height: rect.height || 600,
     };
   }
+}
+
+/**
+ * 切换目录显示
+ */
+function toggleToc() {
+  showToc.value = !showToc.value;
+}
+
+/**
+ * 跳转到指定章节
+ */
+function gotoChapter(chapterIndex) {
+  currentChapter.value = chapterIndex;
+  currentPage.value = 1;
+  saveProgress();
 }
 
 /**
@@ -380,7 +408,10 @@ function goBack() {
   router.push("/");
 }
 
-// 键盘事件处理
+// 添加目录显示状态
+const showToc = ref(false);
+
+// 键盘事件处理 - 添加目录快捷键
 function handleKeyPress(event) {
   switch (event.key) {
     case "ArrowLeft":
@@ -394,6 +425,16 @@ function handleKeyPress(event) {
       break;
     case "ArrowDown":
       nextChapter();
+      break;
+    case "t":
+    case "T":
+      // 按T键打开/关闭目录
+      toggleToc();
+      break;
+    case "Escape":
+      // ESC键关闭目录和设置
+      showToc.value = false;
+      showSettings.value = false;
       break;
   }
 }
@@ -519,32 +560,20 @@ onUnmounted(() => {
   background-color: #2d2d2d;
   border-bottom-color: #444;
 }
-
+.toc-btn,
 .back-btn,
 .settings-btn {
-  padding: 8px 16px;
+  padding: 6px 10px;
   border: none;
-  background-color: #f0f0f0;
-  border-radius: 6px;
+  background-color: #bababa;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.back-btn:hover,
-.settings-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.dark-mode .back-btn,
-.dark-mode .settings-btn {
-  background-color: #404040;
-  color: #e0e0e0;
-}
-
-.dark-mode .back-btn:hover,
-.dark-mode .settings-btn:hover {
-  background-color: #505050;
+  font-size: 12px;
+  margin-right: 10px;
+  display: flex;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: no-drag;
 }
 
 .book-title {

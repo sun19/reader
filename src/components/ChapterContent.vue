@@ -73,7 +73,7 @@ const formattedContent = computed(() => {
 
 <style scoped>
 .chapter-content {
-  padding: 20px;
+  padding: 30px;
   width: 100%;
   height: 100%;
   overflow: hidden;

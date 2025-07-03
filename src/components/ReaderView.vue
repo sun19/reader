@@ -46,6 +46,7 @@
         :text-color="textColor"
         :paragraph-spacing="paragraphSpacing"
       />
+      <div class="progress">{{ currentPage }}/{{ totalPages }}</div>
     </div>
 
     <!-- 底部控制栏 -->
@@ -54,11 +55,10 @@
       :total-pages="totalPages"
       :current-chapter="currentChapter"
       :total-chapters="totalChapters"
-      @prev-page="prevPage"
-      @next-page="nextPage"
       @prev-chapter="prevChapter"
       @next-chapter="nextChapter"
       @goto-page="gotoPage"
+      @goto-progress="handleProgressChange"
     />
 
     <!-- 设置面板 -->
@@ -390,6 +390,18 @@ function handleKeyPress(event) {
       break;
   }
 }
+// 鼠标滚轮事件
+function handleWheel(event) {
+  // 阻止默认滚动行为
+  event.preventDefault();
+
+  // 向上滚动
+  if (event.deltaY < 0) {
+    prevPage();
+  } else {
+    nextPage();
+  }
+}
 
 /**
  * 最小化窗口
@@ -434,11 +446,26 @@ function handleResize() {
   updateContainerSize();
 }
 
+/**
+ * 处理进度条跳转
+ */
+function handleProgressChange(data) {
+  if (!data.preview) {
+    // 正式跳转
+    currentChapter.value = data.chapter;
+    currentPage.value = data.page;
+    saveProgress();
+  }
+  // 预览模式可以在这里添加预览逻辑
+}
+
 // 生命周期
 onMounted(async () => {
   await loadBook();
   document.addEventListener("keydown", handleKeyPress);
   window.addEventListener("resize", handleResize);
+  // 监听鼠标滚轮事件
+  window.addEventListener("wheel", handleWheel);
 
   // 等待DOM渲染完成后获取容器尺寸
   await nextTick();
@@ -448,6 +475,8 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeyPress);
   window.removeEventListener("resize", handleResize);
+  // 监听鼠标滚轮事件
+  window.removeEventListener("wheel", handleWheel);
   saveProgress();
 });
 </script>
@@ -469,12 +498,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 10px 20px;
   background-color: white;
   border-bottom: 1px solid #e0e0e0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.progress {
+  font-size: 12px;
+  color: #888;
+  position: absolute;
+  bottom: 6px;
+  left: 20px;
+}
 .dark-mode .reader-header {
   background-color: #2d2d2d;
   border-bottom-color: #444;

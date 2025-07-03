@@ -1,121 +1,196 @@
 <template>
-  <div class="reader-controls">
+  <div
+    class="reader-controls"
+    :class="{ visible: isVisible }"
+    @mouseenter="showControls"
+    @mouseleave="hideControls"
+  >
     <div class="control-group">
-      <button 
+      <button
         @click="$emit('prev-chapter')"
         :disabled="currentChapter <= 0"
-        class="control-btn"
+        class="control-btn arrow-btn"
+        title="上一章"
       >
-        上一章
-      </button>
-      <button 
-        @click="$emit('prev-page')"
-        :disabled="currentPage <= 1 && currentChapter <= 0"
-        class="control-btn"
-      >
-        上一页
+        ⬅️
       </button>
     </div>
-    
-    <div class="progress-info">
-      <span class="chapter-info">
-        {{ currentChapter + 1 }} / {{ totalChapters }}
-      </span>
-      <div class="page-input">
-        <input 
-          v-model.number="pageInput"
-          @keyup.enter="gotoPage"
-          type="number"
-          :min="1"
-          :max="totalPages"
-          class="page-number"
-        />
-        <span class="page-total">/ {{ totalPages }}</span>
+
+    <!-- 滑块进度条 -->
+    <div class="progress-slider">
+      <div class="progress-text">
+        {{
+          Math.round((currentProgress / Math.max(totalProgress - 1, 1)) * 100)
+        }}%
       </div>
+      <input
+        type="range"
+        :min="0"
+        :max="totalProgress - 1"
+        :value="currentProgress"
+        @input="onProgressChange"
+        @change="onProgressCommit"
+        class="slider"
+      />
     </div>
-    
+
     <div class="control-group">
-      <button 
-        @click="$emit('next-page')"
-        :disabled="currentPage >= totalPages && currentChapter >= totalChapters - 1"
-        class="control-btn"
-      >
-        下一页
-      </button>
-      <button 
+      <button
         @click="$emit('next-chapter')"
         :disabled="currentChapter >= totalChapters - 1"
-        class="control-btn"
+        class="control-btn arrow-btn"
+        title="下一章"
       >
-        下一章
+        ➡️
       </button>
     </div>
   </div>
+
+  <!-- 底部悬浮触发区域 -->
+  <div class="hover-trigger" @mouseenter="showControls"></div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from "vue";
 
 // 组件属性
 const props = defineProps({
   currentPage: {
     type: Number,
-    default: 1
+    default: 1,
   },
   totalPages: {
     type: Number,
-    default: 1
+    default: 1,
   },
   currentChapter: {
     type: Number,
-    default: 0
+    default: 0,
   },
   totalChapters: {
     type: Number,
-    default: 1
-  }
+    default: 1,
+  },
 });
 
 // 组件事件
-defineEmits([
-  'prev-page',
-  'next-page', 
-  'prev-chapter',
-  'next-chapter',
-  'goto-page'
+const emit = defineEmits([
+  "prev-chapter",
+  "next-chapter",
+  "goto-page",
+  "goto-progress",
 ]);
 
-const pageInput = ref(props.currentPage);
+// 控制栏显示状态
+const isVisible = ref(false);
+let hideTimer = null;
 
-// 监听当前页变化
-watch(() => props.currentPage, (newPage) => {
-  pageInput.value = newPage;
+/**
+ * 计算总进度（所有章节的总页数）
+ */
+const totalProgress = computed(() => {
+  // 假设每章平均页数相同，这里简化计算
+  // 实际应用中可能需要更精确的计算方式
+  return props.totalChapters * props.totalPages;
 });
 
 /**
- * 跳转到指定页面
+ * 计算当前进度位置
  */
-function gotoPage() {
-  const page = Math.max(1, Math.min(pageInput.value, props.totalPages));
-  pageInput.value = page;
-  $emit('goto-page', page);
+const currentProgress = computed(() => {
+  return props.currentChapter * props.totalPages + props.currentPage - 1;
+});
+
+/**
+ * 显示控制栏
+ */
+function showControls() {
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+  isVisible.value = true;
+}
+
+/**
+ * 隐藏控制栏（延迟）
+ */
+function hideControls() {
+  hideTimer = setTimeout(() => {
+    isVisible.value = false;
+  }, 300); // 300ms延迟
+}
+
+/**
+ * 处理进度条拖动
+ */
+function onProgressChange(event) {
+  const progress = parseInt(event.target.value);
+  const targetChapter = Math.floor(progress / props.totalPages);
+  const targetPage = (progress % props.totalPages) + 1;
+
+  // 实时预览，但不提交
+  emit("goto-progress", {
+    chapter: Math.min(targetChapter, props.totalChapters - 1),
+    page: Math.min(targetPage, props.totalPages),
+    preview: true,
+  });
+}
+
+/**
+ * 处理进度条拖动完成
+ */
+function onProgressCommit(event) {
+  const progress = parseInt(event.target.value);
+  const targetChapter = Math.floor(progress / props.totalPages);
+  const targetPage = (progress % props.totalPages) + 1;
+
+  // 正式跳转
+  emit("goto-progress", {
+    chapter: Math.min(targetChapter, props.totalChapters - 1),
+    page: Math.min(targetPage, props.totalPages),
+    preview: false,
+  });
 }
 </script>
 
 <style scoped>
 .reader-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 30px;
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.95);
   border-top: 1px solid #e0e0e0;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  transform: translateY(100%);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+}
+
+.reader-controls.visible {
+  transform: translateY(0);
+}
+
+.hover-trigger {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  z-index: 999;
+  pointer-events: auto;
 }
 
 .control-group {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .control-btn {
@@ -126,11 +201,13 @@ function gotoPage() {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
+  position: relative;
 }
 
 .control-btn:hover:not(:disabled) {
   background-color: #f0f0f0;
   border-color: #ccc;
+  transform: translateY(-1px);
 }
 
 .control-btn:disabled {
@@ -138,46 +215,101 @@ function gotoPage() {
   cursor: not-allowed;
 }
 
-.progress-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+.arrow-btn {
+  font-size: 18px;
+  padding: 8px 12px;
+  min-width: 44px;
 }
 
-.chapter-info {
-  font-size: 12px;
-  color: #666;
-}
-
-.page-input {
+.progress-slider {
+  width: 100%;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
 }
 
-.page-number {
-  width: 60px;
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 14px;
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
 }
 
-.page-total {
-  font-size: 14px;
-  color: #666;
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #007bff;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
 }
 
-@media (max-width: 768px) {
+.slider::-webkit-slider-thumb:hover {
+  background: #0056b3;
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #007bff;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.slider::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #000;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: #888;
+  font-weight: 500;
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
   .reader-controls {
-    padding: 10px 15px;
+    background-color: rgba(45, 45, 45, 0.95);
+    border-top-color: #444;
   }
-  
+
   .control-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+    background-color: #404040;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .control-btn:hover:not(:disabled) {
+    background-color: #505050;
+    border-color: #666;
+  }
+
+  .chapter-info {
+    color: #ccc;
+  }
+
+  .progress-text {
+    color: #aaa;
+  }
+
+  .slider {
+    background: #555;
   }
 }
 </style>

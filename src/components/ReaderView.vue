@@ -6,7 +6,9 @@
         <!-- 操作按钮组 -->
         <div class="action-buttons">
           <button @click="goBack" class="back-btn">← 返回书架</button>
-          <h1 class="book-title">{{ currentBook?.title || "未知书籍" }}</h1>
+          <h1 class="book-title">
+            {{ currentBook?.title + currentChapterTitle || "未知书籍" }}
+          </h1>
           <button @click="toggleSettings" class="settings-btn">⚙️</button>
         </div>
       </div>
@@ -32,9 +34,6 @@
         </button>
       </div>
     </div>
-    <!-- 顶部标题栏 -->
-    <div class="reader-header"></div>
-
     <!-- 阅读内容区域 -->
     <div class="reader-content" ref="contentArea">
       <ChapterContent
@@ -45,6 +44,7 @@
         :font-family="fontFamily"
         :background-color="backgroundColor"
         :text-color="textColor"
+        :paragraph-spacing="paragraphSpacing"
       />
     </div>
 
@@ -70,25 +70,35 @@
       :background-color="backgroundColor"
       :text-color="textColor"
       :is-dark-mode="isDarkMode"
+      :paragraph-spacing="paragraphSpacing"
       @update-font-size="updateFontSize"
       @update-line-height="updateLineHeight"
       @update-font-family="updateFontFamily"
       @update-background="updateBackground"
       @update-text-color="updateTextColor"
       @toggle-dark-mode="toggleDarkMode"
+      @update-paragraph-spacing="updateParagraphSpacing"
       @close="showSettings = false"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import ChapterContent from "./ChapterContent.vue";
 import ReaderControls from "./ReaderControls.vue";
 import ReaderSettings from "./ReaderSettings.vue";
+// 导入设置管理工具
+import { loadSettings, saveSettings } from "../utils/settingsManager.js";
+// 导入页面计算工具
+import {
+  calculateTotalPages,
+  getPageContent,
+  getDefaultOptions,
+} from "../utils/pageCalculator.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -100,40 +110,40 @@ const chapters = ref([]);
 const currentChapter = ref(0);
 const currentPage = ref(1);
 const showSettings = ref(false);
+const contentArea = ref(null);
 
 // 获取当前窗口实例
 const appWindow = getCurrentWindow();
 
-// 阅读设置
-const fontSize = ref(16);
-const lineHeight = ref(1.8);
-const fontFamily = ref("Microsoft YaHei");
-const backgroundColor = ref("#ffffff");
-const textColor = ref("#333333");
-const isDarkMode = ref(false);
+// 阅读设置 - 从全局设置加载
+const settings = ref(loadSettings());
+const fontSize = computed(() => settings.value.fontSize);
+const lineHeight = computed(() => settings.value.lineHeight);
+const fontFamily = computed(() => settings.value.fontFamily);
+const backgroundColor = computed(() => settings.value.backgroundColor);
+const textColor = computed(() => settings.value.textColor);
+const paragraphSpacing = computed(() => settings.value.paragraphSpacing);
+const isDarkMode = computed(() => settings.value.isDarkMode);
+
+// 容器尺寸
+const containerSize = ref({ width: 800, height: 600 });
 
 // 计算属性
 const totalChapters = computed(() => chapters.value.length);
-// 在script setup部分添加导入
-import {
-  calculateTotalPages,
-  getPageContent,
-  getDefaultOptions,
-} from "../utils/pageCalculator.js";
 
 // 修改totalPages计算属性
 const totalPages = computed(() => {
   if (!currentChapterContent.value) return 1;
 
-  // 获取页面计算选项
+  // 获取页面计算选项 - 使用保存的设置和动态容器尺寸
   const options = {
     ...getDefaultOptions(),
     fontSize: fontSize.value,
     lineHeight: lineHeight.value,
-    // 这里可以根据实际容器尺寸动态获取
-    pageWidth: 800,
-    pageHeight: 600,
-    padding: 40,
+    paragraphSpacing: paragraphSpacing.value,
+    pageWidth: containerSize.value.width,
+    pageHeight: containerSize.value.height,
+    padding: 20,
   };
 
   return calculateTotalPages(currentChapterContent.value, options);
@@ -150,15 +160,15 @@ const currentChapterContent = computed(() => {
 const currentContent = computed(() => {
   if (!currentChapterContent.value) return "";
 
-  // 获取页面计算选项
+  // 获取页面计算选项 - 使用保存的设置和动态容器尺寸
   const options = {
     ...getDefaultOptions(),
     fontSize: fontSize.value,
     lineHeight: lineHeight.value,
-    // 这里可以根据实际容器尺寸动态获取
-    pageWidth: 800,
-    pageHeight: 600,
-    padding: 40,
+    paragraphSpacing: paragraphSpacing.value,
+    pageWidth: containerSize.value.width,
+    pageHeight: containerSize.value.height,
+    padding: 20,
   };
 
   return getPageContent(
@@ -167,6 +177,67 @@ const currentContent = computed(() => {
     options
   );
 });
+
+/**
+ * 获取容器实际尺寸
+ */
+function updateContainerSize() {
+  if (contentArea.value) {
+    const rect = contentArea.value.getBoundingClientRect();
+    containerSize.value = {
+      width: rect.width || 800,
+      height: rect.height || 600,
+    };
+  }
+}
+
+/**
+ * 设置相关方法 - 修改为保存到全局设置
+ */
+function toggleSettings() {
+  showSettings.value = !showSettings.value;
+}
+function updateFontSize(size) {
+  settings.value.fontSize = size;
+  saveSettings(settings.value);
+}
+
+function updateParagraphSpacing(size) {
+  settings.value.paragraphSpacing = size;
+  saveSettings(settings.value);
+}
+
+function updateLineHeight(height) {
+  settings.value.lineHeight = height;
+  saveSettings(settings.value);
+}
+
+function updateFontFamily(family) {
+  settings.value.fontFamily = family;
+  saveSettings(settings.value);
+}
+
+function updateBackground(color) {
+  settings.value.backgroundColor = color;
+  saveSettings(settings.value);
+}
+
+function updateTextColor(color) {
+  settings.value.textColor = color;
+  saveSettings(settings.value);
+}
+
+function toggleDarkMode() {
+  settings.value.isDarkMode = !settings.value.isDarkMode;
+  if (settings.value.isDarkMode) {
+    settings.value.backgroundColor = "#1a1a1a";
+    settings.value.textColor = "#e0e0e0";
+  } else {
+    settings.value.backgroundColor = "#ffffff";
+    settings.value.textColor = "#333333";
+  }
+  saveSettings(settings.value);
+}
 
 /**
  * 加载书籍内容
@@ -295,44 +366,6 @@ async function saveProgress() {
 }
 
 /**
- * 设置相关方法
- */
-function toggleSettings() {
-  showSettings.value = !showSettings.value;
-}
-
-function updateFontSize(size) {
-  fontSize.value = size;
-}
-
-function updateLineHeight(height) {
-  lineHeight.value = height;
-}
-
-function updateFontFamily(family) {
-  fontFamily.value = family;
-}
-
-function updateBackground(color) {
-  backgroundColor.value = color;
-}
-
-function updateTextColor(color) {
-  textColor.value = color;
-}
-
-function toggleDarkMode() {
-  isDarkMode.value = !isDarkMode.value;
-  if (isDarkMode.value) {
-    backgroundColor.value = "#1a1a1a";
-    textColor.value = "#e0e0e0";
-  } else {
-    backgroundColor.value = "#ffffff";
-    textColor.value = "#333333";
-  }
-}
-
-/**
  * 返回书架
  */
 function goBack() {
@@ -396,14 +429,25 @@ async function closeWindow() {
   }
 }
 
+// 窗口大小变化监听
+function handleResize() {
+  updateContainerSize();
+}
+
 // 生命周期
-onMounted(() => {
-  loadBook();
+onMounted(async () => {
+  await loadBook();
   document.addEventListener("keydown", handleKeyPress);
+  window.addEventListener("resize", handleResize);
+
+  // 等待DOM渲染完成后获取容器尺寸
+  await nextTick();
+  updateContainerSize();
 });
 
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeyPress);
+  window.removeEventListener("resize", handleResize);
   saveProgress();
 });
 </script>
@@ -464,11 +508,12 @@ onUnmounted(() => {
 }
 
 .book-title {
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 600;
   color: #333;
   margin: 0;
   text-align: center;
+  line-height: 40px;
   flex: 1;
 }
 

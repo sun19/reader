@@ -5,7 +5,7 @@
         <h3>阅读设置</h3>
         <button @click="$emit('close')" class="close-btn">×</button>
       </div>
-      
+
       <div class="settings-content">
         <!-- 字体大小 -->
         <div class="setting-item">
@@ -16,52 +16,71 @@
             <button @click="increaseFontSize" class="size-btn">A+</button>
           </div>
         </div>
-        
+
         <!-- 行间距 -->
         <div class="setting-item">
           <label>行间距</label>
-          <input 
-            type="range" 
-            :value="lineHeight" 
+          <input
+            type="range"
+            :value="lineHeight"
             @input="updateLineHeight($event.target.value)"
-            min="1.2" 
-            max="3" 
+            min="1.2"
+            max="3"
             step="0.1"
             class="range-input"
           />
           <span class="range-value">{{ lineHeight }}</span>
         </div>
-        
+
+        <!-- 段落间距 -->
+        <div class="setting-item">
+          <label>段落间距</label>
+          <input
+            type="range"
+            :value="paragraphSpacing"
+            @input="updateParagraphSpacing($event.target.value)"
+            min="12"
+            max="30"
+            step="1"
+            class="range-input"
+          />
+          <span class="range-value">{{ paragraphSpacing }}</span>
+        </div>
+
         <!-- 字体选择 -->
         <div class="setting-item">
           <label>字体</label>
-          <select :value="fontFamily" @change="updateFontFamily($event.target.value)" class="font-select">
+          <select
+            :value="fontFamily"
+            @change="updateFontFamily($event.target.value)"
+            class="font-select"
+          >
             <option value="Microsoft YaHei">微软雅黑</option>
             <option value="SimSun">宋体</option>
             <option value="KaiTi">楷体</option>
             <option value="SimHei">黑体</option>
           </select>
         </div>
-        
+
         <!-- 主题选择 -->
         <div class="setting-item">
           <label>主题</label>
           <div class="theme-options">
-            <button 
+            <button
               @click="setTheme('#ffffff', '#333333')"
               class="theme-btn light"
               :class="{ active: backgroundColor === '#ffffff' }"
             >
               日间
             </button>
-            <button 
+            <button
               @click="setTheme('#f5f5dc', '#333333')"
               class="theme-btn sepia"
               :class="{ active: backgroundColor === '#f5f5dc' }"
             >
               护眼
             </button>
-            <button 
+            <button
               @click="setTheme('#1a1a1a', '#e0e0e0')"
               class="theme-btn dark"
               :class="{ active: backgroundColor === '#1a1a1a' }"
@@ -83,18 +102,20 @@ const props = defineProps({
   fontFamily: String,
   backgroundColor: String,
   textColor: String,
-  isDarkMode: Boolean
+  isDarkMode: Boolean,
+  paragraphSpacing: Number,
 });
 
 // 组件事件
 const emit = defineEmits([
-  'update-font-size',
-  'update-line-height', 
-  'update-font-family',
-  'update-background',
-  'update-text-color',
-  'toggle-dark-mode',
-  'close'
+  "update-font-size",
+  "update-line-height",
+  "update-font-family",
+  "update-background",
+  "update-text-color",
+  "toggle-dark-mode",
+  "update-paragraph-spacing",
+  "close",
 ]);
 
 /**
@@ -102,34 +123,41 @@ const emit = defineEmits([
  */
 function increaseFontSize() {
   const newSize = Math.min(props.fontSize + 2, 32);
-  emit('update-font-size', newSize);
+  emit("update-font-size", newSize);
 }
 
 function decreaseFontSize() {
   const newSize = Math.max(props.fontSize - 2, 12);
-  emit('update-font-size', newSize);
+  emit("update-font-size", newSize);
 }
 
 /**
  * 行间距更新
  */
 function updateLineHeight(value) {
-  emit('update-line-height', parseFloat(value));
+  emit("update-line-height", parseFloat(value));
 }
 
 /**
  * 字体更新
  */
 function updateFontFamily(family) {
-  emit('update-font-family', family);
+  emit("update-font-family", family);
 }
 
 /**
  * 主题设置
  */
 function setTheme(bgColor, textColor) {
-  emit('update-background', bgColor);
-  emit('update-text-color', textColor);
+  emit("update-background", bgColor);
+  emit("update-text-color", textColor);
+}
+
+/**
+ * 段落间距更新
+ */
+function updateParagraphSpacing(value) {
+  emit("update-paragraph-spacing", parseFloat(value));
 }
 </script>
 

@@ -1,10 +1,6 @@
 <template>
   <div class="chapter-content" :style="contentStyle" ref="contentRef">
-    <h2 class="chapter-title">{{ chapterTitle }}</h2>
     <div class="chapter-text" v-html="formattedContent"></div>
-    <div class="page-info">
-      第 {{ currentPage }} 页 / 共 {{ totalPages }} 页
-    </div>
   </div>
 </template>
 
@@ -41,13 +37,9 @@ const props = defineProps({
     type: String,
     default: "#333333",
   },
-  currentPage: {
+  paragraphSpacing: {
     type: Number,
-    default: 1,
-  },
-  totalPages: {
-    type: Number,
-    default: 1,
+    default: 16,
   },
 });
 
@@ -65,22 +57,27 @@ const contentStyle = computed(() => ({
 // 格式化内容
 const formattedContent = computed(() => {
   if (!props.content) return "";
-  console.log(props.content);
-  // 将换行符转换为段落
+  // 将换行符转换为段落，并动态设置段落间距
   return props.content
     .split("\n")
     .filter((line) => line.trim())
-    .map((line) => `<p>${line.trim()}</p>`)
+    .map(
+      (line) =>
+        `<p style="margin-bottom: ${
+          props.paragraphSpacing
+        }px;">${line.trim()}</p>`
+    )
     .join("");
 });
 </script>
 
 <style scoped>
 .chapter-content {
-  padding: 40px;
-  max-width: 800px;
+  padding: 20px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   margin: 0 auto;
-  min-height: calc(100vh - 120px);
   position: relative;
   transition: all 0.3s ease;
 }
@@ -97,32 +94,12 @@ const formattedContent = computed(() => {
 .chapter-text {
   text-align: justify;
   text-indent: 2em;
+  height: 100%;
+  overflow: hidden;
 }
 
 .chapter-text :deep(p) {
-  margin-bottom: 1em;
   text-indent: 2em;
-}
-
-.page-info {
-  position: absolute;
-  bottom: 20px;
-  right: 40px;
-  font-size: 12px;
-  color: #999;
-}
-
-@media (max-width: 768px) {
-  .chapter-content {
-    padding: 20px;
-  }
-
-  .chapter-title {
-    font-size: 20px;
-  }
-
-  .page-info {
-    right: 20px;
-  }
+  /* margin-bottom 样式已通过 v-html 动态设置，此处不再需要 */
 }
 </style>

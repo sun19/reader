@@ -76,6 +76,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "./BookCard.vue";
+import { useRouter } from "vue-router";
 
 // 响应式数据
 const books = ref([]);
@@ -165,9 +166,14 @@ async function removeBook(bookId) {
 /**
  * 打开书籍
  */
+const router = useRouter();
 function openBook(book) {
-  // TODO: 跳转到阅读页面
-  console.log("打开书籍:", book.title);
+  try {
+    // 导航到阅读页面，传递书籍ID
+    router.push(`/reader/${book.id}`);
+  } catch (error) {
+    console.error("导航到阅读页面失败:", error);
+  }
 }
 
 // 组件挂载时加载书库
@@ -221,82 +227,6 @@ async function closeWindow() {
   height: 100vh;
   background-color: #fcfcfc;
 }
-
-/* 自定义顶部任务栏 */
-.custom-titlebar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 40px;
-  padding: 0 16px;
-  -webkit-app-region: drag; /* 允许拖拽窗口 */
-}
-
-.titlebar-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-}
-
-.search-box {
-  position: relative;
-  width: 200px;
-  -webkit-app-region: no-drag; /* 防止按钮区域被拖拽 */
-}
-
-.search-input {
-  width: 100%;
-  height: 28px;
-  padding: 4px 8px 4px 28px;
-  border: 1px solid #ddd;
-  border-radius: 14px;
-  font-size: 12px;
-  background-color: #f8f9fa;
-  outline: none;
-}
-
-.search-input:focus {
-  border-color: #007bff;
-  background-color: white;
-}
-
-.search-icon {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
-  font-size: 12px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  -webkit-app-region: no-drag; /* 防止按钮区域被拖拽 */
-}
-
-/* 窗口控制按钮 */
-.window-controls {
-  display: flex;
-  gap: 0;
-  -webkit-app-region: no-drag;
-}
-
-.control-btn {
-  padding: 6px 10px;
-  border: none;
-  background-color: #bababa;
-  cursor: pointer;
-  font-size: 12px;
-  margin-left: 10px;
-  display: flex;
-  border-radius: 6px;
-  align-items: center;
-  justify-content: center;
-  -webkit-app-region: no-drag;
-}
-
 /* 书籍容器 */
 .books-container {
   flex: 1;
@@ -327,39 +257,5 @@ async function closeWindow() {
 .empty-text {
   margin: 4px 0;
   font-size: 14px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .bookshelf {
-    background-color: #1a1a1a;
-  }
-
-  .custom-titlebar {
-    background-color: #2d2d2d;
-    border-bottom-color: #444;
-  }
-
-  .search-input {
-    background-color: #3d3d3d;
-    border-color: #555;
-    color: #fff;
-  }
-
-  .search-input:focus {
-    background-color: #4d4d4d;
-  }
-
-  .empty-state {
-    color: #ccc;
-  }
-
-  .control-btn {
-    color: #fff;
-  }
-
-  .minimize-btn:hover,
-  .maximize-btn:hover {
-    background-color: #404040;
-  }
 }
 </style>

@@ -231,6 +231,48 @@ fn update_book_progress(book_id: String, progress: f32, library: State<LibrarySt
     Ok(())
 }
 
+/**
+ * 读取书籍内容
+ */
+#[tauri::command]
+fn read_book_content(file_path: String) -> Result<String, String> {
+    std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("读取文件失败: {}", e))
+}
+
+/**
+ * 获取单本书籍信息
+ */
+#[tauri::command]
+fn get_book(book_id: String, library: State<LibraryState>) -> Result<Book, String> {
+    let library = library.lock().map_err(|e| e.to_string())?;
+    library.get(&book_id)
+        .cloned()
+        .ok_or_else(|| "书籍不存在".to_string())
+}
+
+/**
+ * 保存阅读进度
+ */
+#[tauri::command]
+fn save_reading_progress(book_id: String, chapter: usize, page: usize, library: State<LibraryState>) -> Result<(), String> {
+    let mut library = library.lock().map_err(|e| e.to_string())?;
+    if let Some(book) = library.get_mut(&book_id) {
+        // 这里可以保存到文件或数据库
+        println!("保存进度: 书籍{}, 章节{}, 页面{}", book_id, chapter, page);
+    }
+    Ok(())
+}
+
+/**
+ * 获取阅读进度
+ */
+#[tauri::command]
+fn get_reading_progress(book_id: String) -> Result<Option<serde_json::Value>, String> {
+    // 这里应该从文件或数据库读取进度
+    // 暂时返回空，实际项目中需要实现持久化
+    Ok(None)
+}
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -248,7 +290,11 @@ pub fn run() {
             get_library,
             add_book,
             remove_book,
-            update_book_progress
+            update_book_progress,
+            read_book_content,
+            get_book,
+            save_reading_progress,
+            get_reading_progress
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,14 +1,13 @@
-<script setup>
-import BookShelf from "./components/BookShelf.vue";
-</script>
-
 <template>
   <div class="app">
-    <BookShelf />
+    <router-view />
   </div>
 </template>
 
 <style>
+@import "./assets/custom-titlebar.css";
+@import "./assets/dark.css";
+
 * {
   margin: 0;
   padding: 0;

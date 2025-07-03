@@ -1,9 +1,5 @@
 <template>
-  <div 
-    class="chapter-content"
-    :style="contentStyle"
-    ref="contentRef"
-  >
+  <div class="chapter-content" :style="contentStyle" ref="contentRef">
     <h2 class="chapter-title">{{ chapterTitle }}</h2>
     <div class="chapter-text" v-html="formattedContent"></div>
     <div class="page-info">
@@ -13,46 +9,46 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref } from "vue";
 
 // 组件属性
 const props = defineProps({
   content: {
     type: String,
-    default: ''
+    default: "",
   },
   chapterTitle: {
     type: String,
-    default: ''
+    default: "",
   },
   fontSize: {
     type: Number,
-    default: 16
+    default: 16,
   },
   lineHeight: {
     type: Number,
-    default: 1.8
+    default: 1.8,
   },
   fontFamily: {
     type: String,
-    default: 'Microsoft YaHei'
+    default: "Microsoft YaHei",
   },
   backgroundColor: {
     type: String,
-    default: '#ffffff'
+    default: "#ffffff",
   },
   textColor: {
     type: String,
-    default: '#333333'
+    default: "#333333",
   },
   currentPage: {
     type: Number,
-    default: 1
+    default: 1,
   },
   totalPages: {
     type: Number,
-    default: 1
-  }
+    default: 1,
+  },
 });
 
 const contentRef = ref(null);
@@ -63,19 +59,19 @@ const contentStyle = computed(() => ({
   lineHeight: props.lineHeight,
   fontFamily: props.fontFamily,
   backgroundColor: props.backgroundColor,
-  color: props.textColor
+  color: props.textColor,
 }));
 
 // 格式化内容
 const formattedContent = computed(() => {
-  if (!props.content) return '';
-  
+  if (!props.content) return "";
+  console.log(props.content);
   // 将换行符转换为段落
   return props.content
-    .split('\n')
-    .filter(line => line.trim())
-    .map(line => `<p>${line.trim()}</p>`)
-    .join('');
+    .split("\n")
+    .filter((line) => line.trim())
+    .map((line) => `<p>${line.trim()}</p>`)
+    .join("");
 });
 </script>
 
@@ -120,11 +116,11 @@ const formattedContent = computed(() => {
   .chapter-content {
     padding: 20px;
   }
-  
+
   .chapter-title {
     font-size: 20px;
   }
-  
+
   .page-info {
     right: 20px;
   }

@@ -38,7 +38,7 @@
     <!-- 阅读内容区域 -->
     <div class="reader-content" ref="contentArea">
       <ChapterContent
-        :content="currentChapterContent"
+        :content="currentContent"
         :chapter-title="currentChapterTitle"
         :font-size="fontSize"
         :line-height="lineHeight"
@@ -114,9 +114,29 @@ const isDarkMode = ref(false);
 
 // 计算属性
 const totalChapters = computed(() => chapters.value.length);
+// 在script setup部分添加导入
+import {
+  calculateTotalPages,
+  getPageContent,
+  getDefaultOptions,
+} from "../utils/pageCalculator.js";
+
+// 修改totalPages计算属性
 const totalPages = computed(() => {
-  // 简化计算，实际应根据内容长度和页面大小计算
-  return Math.ceil(currentChapterContent.value.length / 200);
+  if (!currentChapterContent.value) return 1;
+
+  // 获取页面计算选项
+  const options = {
+    ...getDefaultOptions(),
+    fontSize: fontSize.value,
+    lineHeight: lineHeight.value,
+    // 这里可以根据实际容器尺寸动态获取
+    pageWidth: 800,
+    pageHeight: 600,
+    padding: 40,
+  };
+
+  return calculateTotalPages(currentChapterContent.value, options);
 });
 
 const currentChapterTitle = computed(() => {
@@ -124,8 +144,28 @@ const currentChapterTitle = computed(() => {
 });
 
 const currentChapterContent = computed(() => {
-  console.log(chapters.value[currentChapter.value]?.content);
   return chapters.value[currentChapter.value]?.content || "";
+});
+
+const currentContent = computed(() => {
+  if (!currentChapterContent.value) return "";
+
+  // 获取页面计算选项
+  const options = {
+    ...getDefaultOptions(),
+    fontSize: fontSize.value,
+    lineHeight: lineHeight.value,
+    // 这里可以根据实际容器尺寸动态获取
+    pageWidth: 800,
+    pageHeight: 600,
+    padding: 40,
+  };
+
+  return getPageContent(
+    currentChapterContent.value,
+    currentPage.value,
+    options
+  );
 });
 
 /**

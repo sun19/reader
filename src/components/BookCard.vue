@@ -35,12 +35,13 @@
       @click.stop="$emit('remove', book.id)"
       title="移除书籍"
     >
-      ×
+      <Icon icon="heroicons:x-mark-16-solid" width="18" height="18" />
     </button>
   </div>
 </template>
 
 <script setup>
+import { Icon } from "@iconify/vue";
 // 组件属性
 defineProps({
   book: {

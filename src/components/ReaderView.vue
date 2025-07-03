@@ -5,11 +5,15 @@
       <div class="titlebar-content">
         <!-- 操作按钮组 -->
         <div class="action-buttons">
-          <button @click="goBack" class="back-btn">← 返回书架</button>
+          <button @click="goBack" class="back-btn">
+            <Icon icon="heroicons:home-20-solid" width="18" height="18" />
+          </button>
           <h1 class="book-title">
             {{ currentBook?.title + currentChapterTitle || "未知书籍" }}
           </h1>
-          <button @click="toggleSettings" class="settings-btn">⚙️</button>
+          <button @click="toggleSettings" class="settings-btn">
+            <Icon icon="heroicons:cog-6-tooth-solid" width="18" height="18" />
+          </button>
         </div>
       </div>
 
@@ -20,17 +24,17 @@
           class="control-btn minimize-btn"
           title="最小化"
         >
-          −
+          <Icon icon="heroicons:minus-16-solid" width="18" height="18" />
         </button>
         <button
           @click="toggleMaximize"
           class="control-btn maximize-btn"
           title="最大化/还原"
         >
-          □
+          <Icon icon="heroicons:stop" width="18" height="18" />
         </button>
         <button @click="closeWindow" class="control-btn close-btn" title="关闭">
-          ×
+          <Icon icon="heroicons:x-mark-16-solid" width="18" height="18" />
         </button>
       </div>
     </div>
@@ -99,6 +103,7 @@ import {
   getPageContent,
   getDefaultOptions,
 } from "../utils/pageCalculator.js";
+import { Icon } from "@iconify/vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -317,6 +322,7 @@ function parseChapters(content) {
 function prevPage() {
   if (currentPage.value > 1) {
     currentPage.value--;
+    saveProgress();
   } else {
     prevChapter();
   }
@@ -325,6 +331,7 @@ function prevPage() {
 function nextPage() {
   if (currentPage.value < totalPages.value) {
     currentPage.value++;
+    saveProgress();
   } else {
     nextChapter();
   }
@@ -392,9 +399,6 @@ function handleKeyPress(event) {
 }
 // 鼠标滚轮事件
 function handleWheel(event) {
-  // 阻止默认滚动行为
-  event.preventDefault();
-
   // 向上滚动
   if (event.deltaY < 0) {
     prevPage();

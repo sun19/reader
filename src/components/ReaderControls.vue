@@ -12,7 +12,7 @@
         class="control-btn arrow-btn"
         title="上一章"
       >
-        ⬅️
+        <Icon icon="heroicons:chevron-left-16-solid" width="18" height="18" />
       </button>
     </div>
 
@@ -41,7 +41,7 @@
         class="control-btn arrow-btn"
         title="下一章"
       >
-        ➡️
+        <Icon icon="heroicons:chevron-right-16-solid" width="18" height="18" />
       </button>
     </div>
   </div>
@@ -52,6 +52,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { Icon } from "@iconify/vue";
 
 // 组件属性
 const props = defineProps({
@@ -194,10 +195,6 @@ function onProgressCommit(event) {
 }
 
 .control-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  background-color: white;
-  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;

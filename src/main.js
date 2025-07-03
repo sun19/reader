@@ -1,7 +1,6 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import { createRouter, createWebHistory } from "vue-router";
-
 // 导入组件
 import BookShelf from "./components/BookShelf.vue";
 import ReaderView from "./components/ReaderView.vue";

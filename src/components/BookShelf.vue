@@ -20,7 +20,7 @@
             + 书籍
           </button>
           <button @click="refreshLibrary" class="refresh-btn control-btn">
-            🔄
+            <Icon icon="heroicons:arrow-path-solid" width="18" height="18" />
           </button>
         </div>
       </div>
@@ -32,17 +32,17 @@
           class="control-btn minimize-btn"
           title="最小化"
         >
-          −
+          <Icon icon="heroicons:minus-16-solid" width="18" height="18" />
         </button>
         <button
           @click="toggleMaximize"
           class="control-btn maximize-btn"
           title="最大化/还原"
         >
-          □
+          <Icon icon="heroicons:stop" width="18" height="18" />
         </button>
         <button @click="closeWindow" class="control-btn close-btn" title="关闭">
-          ×
+          <Icon icon="heroicons:x-mark-16-solid" width="18" height="18" />
         </button>
       </div>
     </div>
@@ -77,6 +77,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "./BookCard.vue";
 import { useRouter } from "vue-router";
+import { Icon } from "@iconify/vue";
 
 // 响应式数据
 const books = ref([]);

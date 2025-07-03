@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use tauri::State;
 use std::sync::Mutex;
 use base64::{Engine as _, engine::general_purpose};
+use std::fs;
+use std::io::Write;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Book {
@@ -306,13 +308,129 @@ fn get_book(book_id: String, library: State<LibraryState>) -> Result<Book, Strin
         .ok_or_else(|| "书籍不存在".to_string())
 }
 
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct ReadingProgress {
+    book_id: String,
+    chapter: usize,
+    page: usize,
+    last_read_time: String,
+    total_reading_time: u64, // 总阅读时长（秒）
+    reading_percentage: f32, // 阅读百分比
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct ProgressData {
+    progresses: HashMap<String, ReadingProgress>,
+}
+
+/**
+ * 获取进度文件路径
+ */
+fn get_progress_file_path() -> Result<PathBuf, String> {
+    let app_dir = dirs::config_dir()
+        .ok_or("无法获取配置目录")?;
+    
+    let reader_dir = app_dir.join("tauri-reader");
+    
+    // 确保目录存在
+    if !reader_dir.exists() {
+        fs::create_dir_all(&reader_dir)
+            .map_err(|e| format!("创建配置目录失败: {}", e))?;
+    }
+    
+    Ok(reader_dir.join("reading_progress.json"))
+}
+
+/**
+ * 加载所有阅读进度
+ */
+fn load_progress_data() -> Result<ProgressData, String> {
+    let progress_file = get_progress_file_path()?;
+    
+    if !progress_file.exists() {
+        return Ok(ProgressData::default());
+    }
+    
+    let content = fs::read_to_string(&progress_file)
+        .map_err(|e| format!("读取进度文件失败: {}", e))?;
+    
+    let progress_data: ProgressData = serde_json::from_str(&content)
+        .map_err(|e| format!("解析进度文件失败: {}", e))?;
+    
+    Ok(progress_data)
+}
+
+/**
+ * 保存所有阅读进度
+ */
+fn save_progress_data(progress_data: &ProgressData) -> Result<(), String> {
+    let progress_file = get_progress_file_path()?;
+    
+    let content = serde_json::to_string_pretty(progress_data)
+        .map_err(|e| format!("序列化进度数据失败: {}", e))?;
+    
+    let mut file = fs::File::create(&progress_file)
+        .map_err(|e| format!("创建进度文件失败: {}", e))?;
+    
+    file.write_all(content.as_bytes())
+        .map_err(|e| format!("写入进度文件失败: {}", e))?;
+    
+    Ok(())
+}
+
 /**
  * 保存阅读进度
  */
 #[tauri::command]
-fn save_reading_progress(_book_id: String, _chapter: usize, _page: usize, _library: State<LibraryState>) -> Result<(), String> {
-    // 这里可以保存到文件或数据库
-    println!("保存进度: 书籍{}, 章节{}, 页面{}", _book_id, _chapter, _page);
+fn save_reading_progress(
+    book_id: String, 
+    chapter: usize, 
+    page: usize, 
+    library: State<LibraryState>
+) -> Result<(), String> {
+    // 更新书库中的进度
+    {
+        let mut library = library.lock().map_err(|e| e.to_string())?;
+        if let Some(book) = library.get_mut(&book_id) {
+            // 简单计算阅读百分比（基于章节和页面）
+            let progress_percentage = if chapter > 0 || page > 1 {
+                ((chapter as f32 + (page as f32 / 100.0)) / 10.0).min(1.0) * 100.0
+            } else {
+                0.0
+            };
+            
+            book.progress = progress_percentage;
+            book.last_read = Some(chrono::Utc::now().to_rfc3339());
+        }
+    }
+    
+    // 保存详细进度到文件
+    let mut progress_data = load_progress_data()?;
+    
+    let reading_progress = ReadingProgress {
+        book_id: book_id.clone(),
+        chapter,
+        page,
+        last_read_time: chrono::Utc::now().to_rfc3339(),
+        total_reading_time: progress_data.progresses
+            .get(&book_id)
+            .map(|p| p.total_reading_time + 60) // 每次保存增加1分钟阅读时长
+            .unwrap_or(60),
+        reading_percentage: {
+            // 更精确的百分比计算
+            if chapter > 0 || page > 1 {
+                ((chapter as f32 + (page as f32 / 100.0)) / 10.0).min(1.0) * 100.0
+            } else {
+                0.0
+            }
+        },
+    };
+    
+    progress_data.progresses.insert(book_id.clone(), reading_progress);
+    save_progress_data(&progress_data)?;
+    
+    println!("已保存阅读进度: 书籍{}, 章节{}, 页面{}", book_id, chapter, page);
     Ok(())
 }
 
@@ -320,15 +438,54 @@ fn save_reading_progress(_book_id: String, _chapter: usize, _page: usize, _libra
  * 获取阅读进度
  */
 #[tauri::command]
-fn get_reading_progress(_book_id: String) -> Result<Option<serde_json::Value>, String> {
-    // 这里应该从文件或数据库读取进度
-    // 暂时返回空，实际项目中需要实现持久化
-    Ok(None)
+fn get_reading_progress(book_id: String) -> Result<Option<ReadingProgress>, String> {
+    let progress_data = load_progress_data()?;
+    Ok(progress_data.progresses.get(&book_id).cloned())
 }
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+
+/**
+ * 获取所有阅读进度统计
+ */
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn get_reading_statistics() -> Result<serde_json::Value, String> {
+    let progress_data = load_progress_data()?;
+    
+    let total_books = progress_data.progresses.len();
+    let total_reading_time: u64 = progress_data.progresses
+        .values()
+        .map(|p| p.total_reading_time)
+        .sum();
+    
+    let completed_books = progress_data.progresses
+        .values()
+        .filter(|p| p.reading_percentage >= 95.0)
+        .count();
+    
+    let stats = serde_json::json!({
+        "total_books": total_books,
+        "completed_books": completed_books,
+        "total_reading_time_hours": total_reading_time as f32 / 3600.0,
+        "average_progress": if total_books > 0 {
+            progress_data.progresses.values()
+                .map(|p| p.reading_percentage)
+                .sum::<f32>() / total_books as f32
+        } else {
+            0.0
+        }
+    });
+    
+    Ok(stats)
+}
+
+/**
+ * 删除书籍的阅读进度
+ */
+#[tauri::command]
+fn delete_reading_progress(book_id: String) -> Result<(), String> {
+    let mut progress_data = load_progress_data()?;
+    progress_data.progresses.remove(&book_id);
+    save_progress_data(&progress_data)?;
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -338,7 +495,6 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(LibraryState::default())
         .invoke_handler(tauri::generate_handler![
-            greet,
             get_library,
             add_book,
             remove_book,
@@ -346,7 +502,9 @@ pub fn run() {
             read_book_content,
             get_book,
             save_reading_progress,
-            get_reading_progress
+            get_reading_progress,
+            get_reading_statistics,
+            delete_reading_progress
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

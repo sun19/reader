@@ -232,12 +232,67 @@ fn update_book_progress(book_id: String, progress: f32, library: State<LibrarySt
 }
 
 /**
- * 读取书籍内容
+ * 读取书籍内容（支持TXT和EPUB格式）
  */
 #[tauri::command]
 fn read_book_content(file_path: String) -> Result<String, String> {
-    std::fs::read_to_string(&file_path)
-        .map_err(|e| format!("读取文件失败: {}", e))
+    let path = std::path::Path::new(&file_path);
+    
+    // 根据文件扩展名判断文件类型
+    match path.extension().and_then(|s| s.to_str()) {
+        Some("epub") => read_epub_content(&file_path),
+        Some("txt") => read_txt_content(&file_path),
+        _ => Err("不支持的文件格式".to_string()),
+    }
+}
+
+/**
+ * 读取TXT文件内容
+ */
+fn read_txt_content(file_path: &str) -> Result<String, String> {
+    // 读取原始字节
+    let bytes = std::fs::read(file_path)
+        .map_err(|e| format!("读取文件失败: {}", e))?;
+    
+    // 使用lossy转换，会将无效的UTF-8字符替换为�
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+/**
+ * 读取EPUB文件内容（简化版）
+ */
+fn read_epub_content(file_path: &str) -> Result<String, String> {
+    let mut doc = epub::doc::EpubDoc::new(file_path)
+        .map_err(|e| format!("无法打开EPUB文件: {}", e))?;
+    
+    let mut all_content = String::new();
+    let html_tag_regex = regex::Regex::new(r"<[^>]*>").unwrap();
+
+    // 将资源ID收集到Vec中，避免同时借用doc
+    let resource_ids: Vec<String> = doc.resources.keys().cloned().collect();
+
+    // 遍历所有资源
+    for id in resource_ids {
+        // 确保 get_resource_str 返回的是 Option<(String, String)>，并正确解构
+        if let Some((content, _)) = doc.get_resource_str(&id) {
+            // 简单的HTML标签移除
+            let clean_content = content
+                .replace("<p>", "\n")
+                .replace("</p>", "\n")
+                .replace("<br>", "\n")
+                .replace("<br/>", "\n")
+                .replace("<div>", "\n")
+                .replace("</div>", "\n");
+            
+            // 移除所有HTML标签
+            let text_only = html_tag_regex.replace_all(&clean_content, "").to_string();
+            
+            all_content.push_str(&text_only);
+            all_content.push_str("\n\n");
+        }
+    }
+    
+    Ok(all_content)
 }
 
 /**
@@ -255,12 +310,9 @@ fn get_book(book_id: String, library: State<LibraryState>) -> Result<Book, Strin
  * 保存阅读进度
  */
 #[tauri::command]
-fn save_reading_progress(book_id: String, chapter: usize, page: usize, library: State<LibraryState>) -> Result<(), String> {
-    let mut library = library.lock().map_err(|e| e.to_string())?;
-    if let Some(book) = library.get_mut(&book_id) {
-        // 这里可以保存到文件或数据库
-        println!("保存进度: 书籍{}, 章节{}, 页面{}", book_id, chapter, page);
-    }
+fn save_reading_progress(_book_id: String, _chapter: usize, _page: usize, _library: State<LibraryState>) -> Result<(), String> {
+    // 这里可以保存到文件或数据库
+    println!("保存进度: 书籍{}, 章节{}, 页面{}", _book_id, _chapter, _page);
     Ok(())
 }
 
@@ -268,7 +320,7 @@ fn save_reading_progress(book_id: String, chapter: usize, page: usize, library: 
  * 获取阅读进度
  */
 #[tauri::command]
-fn get_reading_progress(book_id: String) -> Result<Option<serde_json::Value>, String> {
+fn get_reading_progress(_book_id: String) -> Result<Option<serde_json::Value>, String> {
     // 这里应该从文件或数据库读取进度
     // 暂时返回空，实际项目中需要实现持久化
     Ok(None)

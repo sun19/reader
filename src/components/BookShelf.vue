@@ -1,0 +1,309 @@
+<template>
+  <div class="bookshelf">
+    <!-- 自定义顶部任务栏 -->
+    <div class="custom-titlebar">
+      <div class="titlebar-content">
+        <!-- 搜索框 -->
+        <div class="search-box">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="搜索我的书库"
+            class="search-input"
+          />
+          <i class="search-icon">🔍</i>
+        </div>
+
+        <!-- 操作按钮组 -->
+        <div class="action-buttons">
+          <button @click="addBookDirectly" class="add-btn control-btn">
+            + 书籍
+          </button>
+          <button @click="refreshLibrary" class="refresh-btn control-btn">
+            🔄
+          </button>
+        </div>
+      </div>
+
+      <!-- 窗口控制按钮 -->
+      <div class="window-controls">
+        <button class="control-btn minimize-btn">−</button>
+        <button class="control-btn maximize-btn">□</button>
+        <button class="control-btn close-btn">×</button>
+      </div>
+    </div>
+
+    <!-- 书籍网格容器 -->
+    <div class="books-container">
+      <!-- 书籍网格 -->
+      <div class="books-grid" v-if="filteredBooks.length > 0">
+        <BookCard
+          v-for="book in filteredBooks"
+          :key="book.id"
+          :book="book"
+          @click="openBook(book)"
+          @remove="removeBook"
+        />
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else class="empty-state">
+        <div class="empty-icon">📚</div>
+        <p class="empty-text">将 (txt,epub) 文件</p>
+        <p class="empty-text">拖到此处，或者添加本地书籍</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import BookCard from "./BookCard.vue";
+
+// 响应式数据
+const books = ref([]);
+const searchQuery = ref("");
+
+// 计算属性 - 过滤书籍
+const filteredBooks = computed(() => {
+  if (!searchQuery.value) return books.value;
+  return books.value.filter(
+    (book) =>
+      book.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+/**
+ * 加载书库
+ */
+async function loadLibrary() {
+  try {
+    const libraryData = await invoke("get_library");
+    books.value = libraryData || [];
+  } catch (error) {
+    console.error("加载书库失败:", error);
+  }
+}
+
+/**
+ * 刷新书库
+ */
+async function refreshLibrary() {
+  await loadLibrary();
+}
+
+/**
+ * 直接添加书籍 - 简化流程
+ */
+async function addBookDirectly() {
+  try {
+    // 直接打开文件选择对话框
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "电子书",
+          extensions: ["txt", "epub"],
+        },
+      ],
+    });
+
+    if (selected) {
+      // 从文件路径提取书名
+      const fileName = selected.split("\\").pop() || selected.split("/").pop();
+      const bookTitle = fileName.replace(/\.[^/.]+$/, ""); // 去掉扩展名
+
+      const bookData = {
+        title: bookTitle,
+        author: "未知作者",
+        file_path: selected,
+      };
+
+      // 直接添加到书库
+      const newBook = await invoke("add_book", { bookData });
+      books.value.push(newBook);
+    }
+  } catch (error) {
+    console.error("添加书籍失败:", error);
+    alert("添加书籍失败: " + error);
+  }
+}
+
+/**
+ * 移除书籍
+ */
+async function removeBook(bookId) {
+  try {
+    await invoke("remove_book", { bookId });
+    books.value = books.value.filter((book) => book.id !== bookId);
+  } catch (error) {
+    console.error("移除书籍失败:", error);
+  }
+}
+
+/**
+ * 打开书籍
+ */
+function openBook(book) {
+  // TODO: 跳转到阅读页面
+  console.log("打开书籍:", book.title);
+}
+
+// 组件挂载时加载书库
+onMounted(() => {
+  loadLibrary();
+});
+</script>
+
+<style scoped>
+.bookshelf {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #fcfcfc;
+}
+
+/* 自定义顶部任务栏 */
+.custom-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 16px;
+  -webkit-app-region: drag; /* 允许拖拽窗口 */
+}
+
+.titlebar-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.search-box {
+  position: relative;
+  width: 200px;
+  -webkit-app-region: no-drag; /* 防止按钮区域被拖拽 */
+}
+
+.search-input {
+  width: 100%;
+  height: 28px;
+  padding: 4px 8px 4px 28px;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  font-size: 12px;
+  background-color: #f8f9fa;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #007bff;
+  background-color: white;
+}
+
+.search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag; /* 防止按钮区域被拖拽 */
+}
+
+/* 窗口控制按钮 */
+.window-controls {
+  display: flex;
+  gap: 0;
+  -webkit-app-region: no-drag;
+}
+
+.control-btn {
+  padding: 6px 10px;
+  border: none;
+  background-color: #bababa;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 10px;
+  display: flex;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: no-drag;
+}
+
+/* 书籍容器 */
+.books-container {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 20px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bookshelf {
+    background-color: #1a1a1a;
+  }
+
+  .custom-titlebar {
+    background-color: #2d2d2d;
+    border-bottom-color: #444;
+  }
+
+  .search-input {
+    background-color: #3d3d3d;
+    border-color: #555;
+    color: #fff;
+  }
+
+  .search-input:focus {
+    background-color: #4d4d4d;
+  }
+
+  .empty-state {
+    color: #ccc;
+  }
+
+  .control-btn {
+    color: #fff;
+  }
+
+  .minimize-btn:hover,
+  .maximize-btn:hover {
+    background-color: #404040;
+  }
+}
+</style>

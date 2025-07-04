@@ -234,7 +234,6 @@ function toggleSettings() {
 
 function updateTheme(newTheme) {
   theme.value = newTheme;
-  console.log(newTheme);
   StyleUtil.setStyle(newTheme);
 }
 
@@ -254,7 +253,6 @@ async function loadBook() {
     const content = await invoke("read_book_content", {
       filePath: book.file_path,
     });
-    console.log(content);
     bookContent.value = content;
 
     // 解析章节
@@ -598,8 +596,6 @@ function parseParagraphs() {
  * 处理段落点击事件
  */
 function handleParagraphClick(paragraphIndex) {
-  console.log("点击段落索引:", paragraphIndex);
-
   if (isReading.value) {
     // 停止当前朗读
     stopReading();

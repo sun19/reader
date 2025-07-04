@@ -52,8 +52,6 @@ const contentRef = ref(null);
  * 处理段落点击
  */
 function handleParagraphClick(event) {
-  console.log("paragraphIndex");
-
   const paragraphIndex = parseInt(
     event.target.getAttribute("data-paragraph-index")
   );

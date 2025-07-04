@@ -63,7 +63,7 @@
 .control-btn {
   padding: 6px 10px;
   border: none;
-  background-color: #bababa;
+  background-color: #ccc;
   cursor: pointer;
   font-size: 12px;
   margin-left: 10px;
@@ -72,4 +72,8 @@
   align-items: center;
   justify-content: center;
   -webkit-app-region: no-drag;
+}
+
+.control-btn:hover{
+  background-color: #aaa;
 }

@@ -1,5 +1,13 @@
 <template>
-  <div class="settings-overlay" @click="$emit('close')">
+  <div
+    class="settings-overlay"
+    :style="{
+      '--bbc': currentTheme.btnBgColor,
+      '--bg': currentTheme.backgroundColor,
+      '--fc': currentTheme.fontColor,
+    }"
+    @click="$emit('close')"
+  >
     <div class="settings-panel" @click.stop>
       <div class="settings-header">
         <h3>阅读设置</h3>
@@ -12,7 +20,7 @@
           <label>字体大小</label>
           <div class="font-size-controls">
             <button @click="decreaseFontSize" class="size-btn">A-</button>
-            <span class="size-value">{{ fontSize }}px</span>
+            <span class="size-value">{{ currentTheme.fontSize }}px</span>
             <button @click="increaseFontSize" class="size-btn">A+</button>
           </div>
         </div>
@@ -22,14 +30,14 @@
           <label>行间距</label>
           <input
             type="range"
-            :value="lineHeight"
+            :value="currentTheme.lineHeight"
             @input="updateLineHeight($event.target.value)"
             min="1.2"
             max="3"
             step="0.1"
             class="range-input"
           />
-          <span class="range-value">{{ lineHeight }}</span>
+          <span class="range-value">{{ currentTheme.lineHeight }}</span>
         </div>
 
         <!-- 段落间距 -->
@@ -37,21 +45,21 @@
           <label>段落间距</label>
           <input
             type="range"
-            :value="paragraphSpacing"
+            :value="currentTheme.paragraphSpacing"
             @input="updateParagraphSpacing($event.target.value)"
             min="12"
             max="30"
             step="1"
             class="range-input"
           />
-          <span class="range-value">{{ paragraphSpacing }}</span>
+          <span class="range-value">{{ currentTheme.paragraphSpacing }}</span>
         </div>
 
         <!-- 字体选择 -->
         <div class="setting-item">
           <label>字体</label>
           <select
-            :value="fontFamily"
+            :value="currentTheme.fontFamily"
             @change="updateFontFamily($event.target.value)"
             class="font-select"
           >
@@ -67,25 +75,23 @@
           <label>主题</label>
           <div class="theme-options">
             <button
-              @click="setTheme('#ffffff', '#333333')"
-              class="theme-btn light"
-              :class="{ active: backgroundColor === '#ffffff' }"
+              v-for="(theme, index) in themes"
+              @click="setTheme(index)"
+              class="theme-btn"
+              :style="{
+                color: theme.fontColor,
+                backgroundColor: theme.backgroundColor,
+              }"
             >
-              日间
-            </button>
-            <button
-              @click="setTheme('#f5f5dc', '#333333')"
-              class="theme-btn sepia"
-              :class="{ active: backgroundColor === '#f5f5dc' }"
-            >
-              护眼
-            </button>
-            <button
-              @click="setTheme('#1a1a1a', '#e0e0e0')"
-              class="theme-btn dark"
-              :class="{ active: backgroundColor === '#1a1a1a' }"
-            >
-              夜间
+              <Icon
+                :icon="
+                  index === currentThemeIndex
+                    ? 'icon-selected-copy'
+                    : 'icon-danxuan_weixuanzhong'
+                "
+                class="theme-icon"
+              />
+              {{ theme.label }}
             </button>
           </div>
         </div>
@@ -95,69 +101,73 @@
 </template>
 
 <script setup>
+import { computed, ref } from "vue";
+
+import StyleUtil from "../utils/styleUtil";
+import Theme from "../utils/theme";
+import { Icon } from "@iconify/vue";
 // 组件属性
 const props = defineProps({
-  fontSize: Number,
-  lineHeight: Number,
-  fontFamily: String,
-  backgroundColor: String,
-  textColor: String,
-  isDarkMode: Boolean,
-  paragraphSpacing: Number,
+  theme: Object,
 });
 
 // 组件事件
-const emit = defineEmits([
-  "update-font-size",
-  "update-line-height",
-  "update-font-family",
-  "update-background",
-  "update-text-color",
-  "toggle-dark-mode",
-  "update-paragraph-spacing",
-  "close",
-]);
+const emit = defineEmits(["update-theme", "close"]);
+
+const themes = ref(Theme.getThemes());
+const currentThemeIndex = ref(StyleUtil.getThemeIndex());
+const currentTheme = computed(() => props.theme);
 
 /**
  * 字体大小控制
  */
 function increaseFontSize() {
-  const newSize = Math.min(props.fontSize + 2, 32);
-  emit("update-font-size", newSize);
+  const newSize = Math.min(currentTheme.value.fontSize + 2, 32);
+  currentTheme.value.fontSize = newSize;
+  emit("update-theme", currentTheme.value);
 }
 
 function decreaseFontSize() {
-  const newSize = Math.max(props.fontSize - 2, 12);
-  emit("update-font-size", newSize);
+  const newSize = Math.max(currentTheme.value.fontSize - 2, 12);
+  currentTheme.value.fontSize = newSize;
+  emit("update-theme", currentTheme.value);
 }
 
 /**
  * 行间距更新
  */
 function updateLineHeight(value) {
-  emit("update-line-height", parseFloat(value));
+  currentTheme.value.lineHeight = parseFloat(value);
+  emit("update-theme", currentTheme.value);
 }
 
 /**
  * 字体更新
  */
 function updateFontFamily(family) {
-  emit("update-font-family", family);
+  currentTheme.value.fontFamily = family;
+  emit("update-theme", currentTheme.value);
 }
 
 /**
  * 主题设置
  */
-function setTheme(bgColor, textColor) {
-  emit("update-background", bgColor);
-  emit("update-text-color", textColor);
+function setTheme(index) {
+  currentThemeIndex.value = index;
+  const selectColor = Theme.getThemes()[index];
+  currentTheme.value.backgroundColor = selectColor.backgroundColor;
+  currentTheme.value.fontColor = selectColor.fontColor;
+  currentTheme.value.btnBgColor = selectColor.btnBgColor;
+
+  emit("update-theme", currentTheme.value);
 }
 
 /**
  * 段落间距更新
  */
 function updateParagraphSpacing(value) {
-  emit("update-paragraph-spacing", parseFloat(value));
+  currentTheme.value.paragraphSpacing = parseFloat(value);
+  emit("update-theme", currentTheme.value);
 }
 </script>
 
@@ -173,12 +183,13 @@ function updateParagraphSpacing(value) {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  color: var(--fc);
 }
 
 .settings-panel {
-  background-color: white;
+  background-color: var(--bg);
   border-radius: 12px;
-  width: 400px;
+  width: 600px;
   max-width: 90vw;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
@@ -188,7 +199,7 @@ function updateParagraphSpacing(value) {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--fc);
 }
 
 .settings-header h3 {
@@ -201,17 +212,13 @@ function updateParagraphSpacing(value) {
   width: 32px;
   height: 32px;
   border: none;
-  background-color: #f0f0f0;
+  background-color: var(--bbc);
   border-radius: 50%;
   cursor: pointer;
   font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.close-btn:hover {
-  background-color: #e0e0e0;
 }
 
 .settings-content {
@@ -226,7 +233,7 @@ function updateParagraphSpacing(value) {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #333;
+  color: var(--fc);
 }
 
 .font-size-controls {
@@ -238,15 +245,11 @@ function updateParagraphSpacing(value) {
 .size-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--fc);
   background-color: white;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-}
-
-.size-btn:hover {
-  background-color: #f0f0f0;
 }
 
 .size-value {
@@ -269,46 +272,32 @@ function updateParagraphSpacing(value) {
 .font-select {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--fc);
   border-radius: 6px;
   font-size: 14px;
 }
 
 .theme-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .theme-btn {
-  flex: 1;
+  width: 80px;
   padding: 12px;
-  border: 2px solid #ddd;
+  border: 2px solid var(--fc);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
 }
 
-.theme-btn.light {
-  background-color: #ffffff;
-  color: #333333;
-}
-
-.theme-btn.sepia {
-  background-color: #f5f5dc;
-  color: #333333;
-}
-
-.theme-btn.dark {
-  background-color: #1a1a1a;
-  color: #e0e0e0;
-}
-
-.theme-btn.active {
-  border-color: #007bff;
-}
-
 .theme-btn:hover {
   transform: translateY(-2px);
+}
+
+.theme-icon {
+  font-size: 20px;
 }
 </style>

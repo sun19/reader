@@ -1,5 +1,12 @@
 <template>
-  <div class="reader-view" :class="{ 'dark-mode': isDarkMode }">
+  <div
+    class="reader-view"
+    :style="{
+      '--bbc': theme.btnBgColor,
+      '--bg': theme.backgroundColor,
+      '--fc': theme.fontColor,
+    }"
+  >
     <!-- 自定义顶部任务栏 -->
     <div class="custom-titlebar">
       <!-- 操作按钮组 -->
@@ -10,6 +17,20 @@
         <!-- 添加目录按钮 -->
         <button @click="toggleToc" class="control-btn" title="目录">
           <Icon icon="heroicons:list-bullet-20-solid" width="18" height="18" />
+        </button>
+        <!-- 新增朗读按钮 -->
+        <button
+          @click="toggleReading"
+          class="control-btn"
+          :title="isReading ? '暂停朗读' : '开始朗读'"
+        >
+          <Icon
+            :icon="
+              isReading ? 'heroicons:pause-20-solid' : 'heroicons:play-20-solid'
+            "
+            width="18"
+            height="18"
+          />
         </button>
         <button @click="toggleSettings" class="control-btn">
           <Icon icon="heroicons:cog-6-tooth-solid" width="18" height="18" />
@@ -45,12 +66,9 @@
       <ChapterContent
         :content="currentContent"
         :chapter-title="currentChapterTitle"
-        :font-size="fontSize"
-        :line-height="lineHeight"
-        :font-family="fontFamily"
-        :background-color="backgroundColor"
-        :text-color="textColor"
-        :paragraph-spacing="paragraphSpacing"
+        :theme="theme"
+        :current-reading-paragraph="currentReadingParagraph"
+        @paragraph-click="handleParagraphClick"
       />
       <div class="progress">{{ currentPage }}/{{ totalPages }}</div>
     </div>
@@ -61,6 +79,7 @@
       :total-pages="totalPages"
       :current-chapter="currentChapter"
       :total-chapters="totalChapters"
+      :theme="theme"
       @prev-chapter="prevChapter"
       @next-chapter="nextChapter"
       @goto-page="gotoPage"
@@ -70,20 +89,8 @@
     <!-- 设置面板 -->
     <ReaderSettings
       v-if="showSettings"
-      :font-size="fontSize"
-      :line-height="lineHeight"
-      :font-family="fontFamily"
-      :background-color="backgroundColor"
-      :text-color="textColor"
-      :is-dark-mode="isDarkMode"
-      :paragraph-spacing="paragraphSpacing"
-      @update-font-size="updateFontSize"
-      @update-line-height="updateLineHeight"
-      @update-font-family="updateFontFamily"
-      @update-background="updateBackground"
-      @update-text-color="updateTextColor"
-      @toggle-dark-mode="toggleDarkMode"
-      @update-paragraph-spacing="updateParagraphSpacing"
+      :theme="theme"
+      @update-theme="updateTheme"
       @close="showSettings = false"
     />
 
@@ -92,6 +99,7 @@
       :is-visible="showToc"
       :chapters="chapters"
       :current-chapter="currentChapter"
+      :theme="theme"
       @close="showToc = false"
       @goto-chapter="gotoChapter"
     />
@@ -103,11 +111,10 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import ChapterContent from "./ChapterContent.vue";
-import ReaderControls from "./ReaderControls.vue";
-import ReaderSettings from "./ReaderSettings.vue";
-// 导入设置管理工具
-import { loadSettings, saveSettings } from "../utils/settingsManager.js";
+import ChapterContent from "../components/ChapterContent.vue";
+import ReaderControls from "../components/ReaderControls.vue";
+import ReaderSettings from "../components/ReaderSettings.vue";
+import TableOfContents from "../components/TableOfContents.vue";
 // 导入页面计算工具
 import {
   calculateTotalPages,
@@ -115,7 +122,7 @@ import {
   getDefaultOptions,
 } from "../utils/pageCalculator.js";
 import { Icon } from "@iconify/vue";
-import TableOfContents from "./TableOfContents.vue";
+import StyleUtil from "../utils/styleUtil.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -128,19 +135,10 @@ const currentChapter = ref(0);
 const currentPage = ref(1);
 const showSettings = ref(false);
 const contentArea = ref(null);
+const theme = ref(StyleUtil.getStyle());
 
 // 获取当前窗口实例
 const appWindow = getCurrentWindow();
-
-// 阅读设置 - 从全局设置加载
-const settings = ref(loadSettings());
-const fontSize = computed(() => settings.value.fontSize);
-const lineHeight = computed(() => settings.value.lineHeight);
-const fontFamily = computed(() => settings.value.fontFamily);
-const backgroundColor = computed(() => settings.value.backgroundColor);
-const textColor = computed(() => settings.value.textColor);
-const paragraphSpacing = computed(() => settings.value.paragraphSpacing);
-const isDarkMode = computed(() => settings.value.isDarkMode);
 
 // 容器尺寸
 const containerSize = ref({ width: 800, height: 600 });
@@ -155,9 +153,9 @@ const totalPages = computed(() => {
   // 获取页面计算选项 - 使用保存的设置和动态容器尺寸
   const options = {
     ...getDefaultOptions(),
-    fontSize: fontSize.value,
-    lineHeight: lineHeight.value,
-    paragraphSpacing: paragraphSpacing.value,
+    fontSize: theme.value.fontSize,
+    lineHeight: theme.value.lineHeight,
+    paragraphSpacing: theme.value.paragraphSpacing,
     pageWidth: containerSize.value.width,
     pageHeight: containerSize.value.height,
     padding: 20,
@@ -180,9 +178,9 @@ const currentContent = computed(() => {
   // 获取页面计算选项 - 使用保存的设置和动态容器尺寸
   const options = {
     ...getDefaultOptions(),
-    fontSize: fontSize.value,
-    lineHeight: lineHeight.value,
-    paragraphSpacing: paragraphSpacing.value,
+    fontSize: theme.value.fontSize,
+    lineHeight: theme.value.lineHeight,
+    paragraphSpacing: theme.value.paragraphSpacing,
     pageWidth: containerSize.value.width,
     pageHeight: containerSize.value.height,
     padding: 20,
@@ -208,6 +206,9 @@ function updateContainerSize() {
   }
 }
 
+// 添加目录显示状态
+const showToc = ref(false);
+
 /**
  * 切换目录显示
  */
@@ -230,46 +231,11 @@ function gotoChapter(chapterIndex) {
 function toggleSettings() {
   showSettings.value = !showSettings.value;
 }
-function updateFontSize(size) {
-  settings.value.fontSize = size;
-  saveSettings(settings.value);
-}
 
-function updateParagraphSpacing(size) {
-  settings.value.paragraphSpacing = size;
-  saveSettings(settings.value);
-}
-
-function updateLineHeight(height) {
-  settings.value.lineHeight = height;
-  saveSettings(settings.value);
-}
-
-function updateFontFamily(family) {
-  settings.value.fontFamily = family;
-  saveSettings(settings.value);
-}
-
-function updateBackground(color) {
-  settings.value.backgroundColor = color;
-  saveSettings(settings.value);
-}
-
-function updateTextColor(color) {
-  settings.value.textColor = color;
-  saveSettings(settings.value);
-}
-
-function toggleDarkMode() {
-  settings.value.isDarkMode = !settings.value.isDarkMode;
-  if (settings.value.isDarkMode) {
-    settings.value.backgroundColor = "#1a1a1a";
-    settings.value.textColor = "#e0e0e0";
-  } else {
-    settings.value.backgroundColor = "#ffffff";
-    settings.value.textColor = "#333333";
-  }
-  saveSettings(settings.value);
+function updateTheme(newTheme) {
+  theme.value = newTheme;
+  console.log(newTheme);
+  StyleUtil.setStyle(newTheme);
 }
 
 /**
@@ -288,6 +254,7 @@ async function loadBook() {
     const content = await invoke("read_book_content", {
       filePath: book.file_path,
     });
+    console.log(content);
     bookContent.value = content;
 
     // 解析章节
@@ -408,9 +375,6 @@ function goBack() {
   router.push("/");
 }
 
-// 添加目录显示状态
-const showToc = ref(false);
-
 // 键盘事件处理 - 添加目录快捷键
 function handleKeyPress(event) {
   switch (event.key) {
@@ -517,11 +481,144 @@ onMounted(async () => {
   updateContainerSize();
 });
 
+// 朗读相关状态
+const isReading = ref(false);
+const currentReadingParagraph = ref(-1);
+const speechSynthesis = window.speechSynthesis;
+const currentUtterance = ref(null);
+const paragraphs = ref([]);
+
+/**
+ * 切换朗读状态
+ */
+function toggleReading() {
+  if (isReading.value) {
+    pauseReading();
+  } else {
+    startReading();
+  }
+}
+
+/**
+ * 开始朗读
+ */
+function startReading() {
+  if (!currentContent.value) return;
+
+  // 解析当前页面的段落
+  parseParagraphs();
+
+  if (paragraphs.value.length === 0) return;
+
+  // 如果之前暂停了，继续朗读
+  if (speechSynthesis.paused) {
+    speechSynthesis.resume();
+    isReading.value = true;
+    return;
+  }
+
+  // 从第一个段落开始朗读
+  currentReadingParagraph.value = 0;
+  isReading.value = true;
+  readParagraph(0);
+}
+
+/**
+ * 暂停朗读
+ */
+function pauseReading() {
+  if (speechSynthesis.speaking) {
+    speechSynthesis.pause();
+  }
+  isReading.value = false;
+}
+
+/**
+ * 停止朗读
+ */
+function stopReading() {
+  speechSynthesis.cancel();
+  isReading.value = false;
+  currentReadingParagraph.value = -1;
+}
+
+/**
+ * 朗读指定段落
+ */
+function readParagraph(index) {
+  if (index >= paragraphs.value.length) {
+    // 朗读完成
+    stopReading();
+    // 下一页
+    nextPage();
+    // 开始朗读
+    startReading();
+    return;
+  }
+
+  currentReadingParagraph.value = index;
+  const text = paragraphs.value[index];
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.8; // 朗读速度
+  utterance.pitch = 1; // 音调
+  utterance.volume = 1; // 音量
+
+  // 朗读结束后继续下一段
+  utterance.onend = () => {
+    if (isReading.value) {
+      readParagraph(index + 1);
+    }
+  };
+
+  // 朗读出错时停止
+  utterance.onerror = () => {
+    console.error("朗读出错");
+    stopReading();
+  };
+
+  currentUtterance.value = utterance;
+  speechSynthesis.speak(utterance);
+}
+
+/**
+ * 解析当前页面的段落
+ */
+function parseParagraphs() {
+  if (!currentContent.value) return;
+
+  // 提取段落文本（去除HTML标签）
+  paragraphs.value = currentContent.value
+    .split("\n")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+}
+
+/**
+ * 处理段落点击事件
+ */
+function handleParagraphClick(paragraphIndex) {
+  console.log("点击段落索引:", paragraphIndex);
+
+  if (isReading.value) {
+    // 停止当前朗读
+    stopReading();
+
+    // 从点击的段落开始朗读
+    parseParagraphs();
+    if (paragraphIndex < paragraphs.value.length) {
+      isReading.value = true;
+      readParagraph(paragraphIndex);
+    }
+  }
+}
+
+// 在组件卸载时停止朗读
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeyPress);
   window.removeEventListener("resize", handleResize);
-  // 监听鼠标滚轮事件
   window.removeEventListener("wheel", handleWheel);
+  stopReading(); // 停止朗读
   saveProgress();
 });
 </script>
@@ -531,63 +628,32 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg);
+  color: var(--fc);
   transition: all 0.3s ease;
 }
 
-.reader-view.dark-mode {
-  background-color: #1a1a1a;
-}
-
-.reader-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 20px;
-  background-color: white;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.control-btn {
+  background-color: var(--bbc);
+  color: var(--fc);
 }
 
 .progress {
   font-size: 12px;
-  color: #888;
+  color: var(--fc);
   position: absolute;
   bottom: 6px;
   left: 20px;
-}
-.dark-mode .reader-header {
-  background-color: #2d2d2d;
-  border-bottom-color: #444;
-}
-.toc-btn,
-.back-btn,
-.settings-btn {
-  padding: 6px 10px;
-  border: none;
-  background-color: #bababa;
-  cursor: pointer;
-  font-size: 12px;
-  margin-right: 10px;
-  display: flex;
-  border-radius: 6px;
-  align-items: center;
-  justify-content: center;
-  -webkit-app-region: no-drag;
 }
 
 .book-title {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--fc);
   margin: 0;
   text-align: center;
   line-height: 40px;
   flex: 1;
-}
-
-.dark-mode .book-title {
-  color: #e0e0e0;
 }
 
 .reader-content {

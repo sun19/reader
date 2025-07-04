@@ -1,6 +1,11 @@
 <template>
   <div
     class="reader-controls"
+    :style="{
+      '--bbc': theme.btnBgColor,
+      '--bg': theme.backgroundColor,
+      '--fc': theme.fontColor,
+    }"
     :class="{ visible: isVisible }"
     @mouseenter="showControls"
     @mouseleave="hideControls"
@@ -53,7 +58,6 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { Icon } from "@iconify/vue";
-
 // 组件属性
 const props = defineProps({
   currentPage: {
@@ -71,6 +75,14 @@ const props = defineProps({
   totalChapters: {
     type: Number,
     default: 1,
+  },
+  theme: {
+    type: Object,
+    default: () => ({
+      backgroundColor: "#ffffff",
+      fontColor: "#333333",
+      btnBgColor: "#f0f0f0",
+    }),
   },
 });
 
@@ -165,9 +177,8 @@ function onProgressCommit(event) {
   align-items: center;
   justify-content: space-between;
   padding: 15px 30px;
-  background-color: rgba(255, 255, 255, 0.95);
-  border-top: 1px solid #e0e0e0;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+  background-color: var(--bg);
+  border-top: 1px solid var(--fc);
   backdrop-filter: blur(10px);
   transform: translateY(100%);
   transition: transform 0.3s ease-in-out;
@@ -201,12 +212,6 @@ function onProgressCommit(event) {
   position: relative;
 }
 
-.control-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-  transform: translateY(-1px);
-}
-
 .control-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -230,7 +235,7 @@ function onProgressCommit(event) {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: #ddd;
+  background: var(--fc);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -243,9 +248,9 @@ function onProgressCommit(event) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #007bff;
+  background: var(--fc);
   cursor: pointer;
-  border: 2px solid white;
+  border: 2px solid var(--bg);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s;
 }
@@ -259,9 +264,9 @@ function onProgressCommit(event) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #007bff;
+  background: var(--fc);
   cursor: pointer;
-  border: 2px solid white;
+  border: 2px solid var(--bg);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s;
 }
@@ -270,43 +275,12 @@ function onProgressCommit(event) {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: #000;
+  background: var(--fc);
 }
 
 .progress-text {
   font-size: 11px;
-  color: #888;
+  color: var(--fc);
   font-weight: 500;
-}
-
-/* 暗色模式支持 */
-@media (prefers-color-scheme: dark) {
-  .reader-controls {
-    background-color: rgba(45, 45, 45, 0.95);
-    border-top-color: #444;
-  }
-
-  .control-btn {
-    background-color: #404040;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .control-btn:hover:not(:disabled) {
-    background-color: #505050;
-    border-color: #666;
-  }
-
-  .chapter-info {
-    color: #ccc;
-  }
-
-  .progress-text {
-    color: #aaa;
-  }
-
-  .slider {
-    background: #555;
-  }
 }
 </style>

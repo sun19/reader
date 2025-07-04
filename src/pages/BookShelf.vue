@@ -1,5 +1,12 @@
 <template>
-  <div class="bookshelf">
+  <div
+    class="bookshelf"
+    :style="{
+      '--bbc': theme.btnBgColor,
+      '--bg': theme.backgroundColor,
+      '--fc': theme.fontColor,
+    }"
+  >
     <!-- 自定义顶部任务栏 -->
     <div class="custom-titlebar">
       <div class="titlebar-content">
@@ -75,13 +82,15 @@ import { ref, computed, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import BookCard from "./BookCard.vue";
+import BookCard from "../components/BookCard.vue";
 import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
+import StyleUtil from "../utils/styleUtil";
 
 // 响应式数据
 const books = ref([]);
 const searchQuery = ref("");
+const theme = ref(StyleUtil.getStyle());
 
 // 获取当前窗口实例
 const appWindow = getCurrentWindow();
@@ -226,7 +235,13 @@ async function closeWindow() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #fcfcfc;
+  background-color: var(--bg);
+  color: var(--fc);
+}
+
+.bookshelf .control-btn {
+  background-color: var(--bbc);
+  color: var(--fc);
 }
 /* 书籍容器 */
 .books-container {

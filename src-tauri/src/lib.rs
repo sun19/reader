@@ -19,6 +19,7 @@ struct Book {
     progress: f32,
     last_read: Option<String>,
     created_at: String,
+    checksum: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -150,6 +151,11 @@ async fn add_book(book_data: BookData, library: State<'_, LibraryState>) -> Resu
     let mut author = book_data.author;
     let mut cover_data: Option<String> = None;
     let mut cover_url: Option<String> = None;
+
+     // 读取文件内容以计算checksum
+    let file_content = fs::read(&book_data.file_path)
+        .map_err(|e| format!("读取文件内容失败: {}", e))?;
+    let checksum = get_hash(&file_content);
     
     // 如果是EPUB文件，尝试提取元数据
     if file_type == "epub" {
@@ -201,6 +207,7 @@ async fn add_book(book_data: BookData, library: State<'_, LibraryState>) -> Resu
         progress: 0.0,
         last_read: None,
         created_at: chrono::Utc::now().to_rfc3339(),
+        checksum, // 添加checksum
     };
     
     // 添加到书库
@@ -289,12 +296,19 @@ fn read_epub_content(file_path: &str) -> Result<String, String> {
             // 移除所有HTML标签
             let text_only = html_tag_regex.replace_all(&clean_content, "").to_string();
             
-            all_content.push_str(&text_only);
+            all_content.push_str(&content);
             all_content.push_str("\n\n");
         }
     }
     
     Ok(all_content)
+}
+
+fn get_hash(data: &Vec<u8>) -> String {
+    let c: &[u8] = &data;
+    let checksum = crc32fast::hash(c);
+
+    return format!("{:x}", checksum);
 }
 
 /**

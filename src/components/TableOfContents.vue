@@ -1,15 +1,24 @@
 <template>
-  <div class="toc-overlay" v-show="isVisible" @click="$emit('close')">
+  <div
+    class="toc-overlay"
+    :style="{
+      '--bbc': theme.btnBgColor,
+      '--bg': theme.backgroundColor,
+      '--fc': theme.fontColor,
+    }"
+    v-show="isVisible"
+    @click="$emit('close')"
+  >
     <div class="toc-panel" @click.stop>
       <div class="toc-header">
         <h3>目录</h3>
         <button @click="$emit('close')" class="close-btn">×</button>
       </div>
-      
+
       <div class="toc-content">
         <div class="chapter-list">
-          <div 
-            v-for="(chapter, index) in chapters" 
+          <div
+            v-for="(chapter, index) in chapters"
             :key="index"
             class="chapter-item"
             :class="{ active: index === currentChapter }"
@@ -32,26 +41,34 @@
 defineProps({
   isVisible: {
     type: Boolean,
-    default: false
+    default: false,
   },
   chapters: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   currentChapter: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
+  theme: {
+    type: Object,
+    default: () => ({
+      backgroundColor: "white",
+      fontColor: "black",
+      btnBgColor: "white",
+    }),
+  },
 });
 
-const emit = defineEmits(['close', 'goto-chapter']);
+const emit = defineEmits(["close", "goto-chapter"]);
 
 /**
  * 跳转到指定章节
  */
 function gotoChapter(chapterIndex) {
-  emit('goto-chapter', chapterIndex);
-  emit('close');
+  emit("goto-chapter", chapterIndex);
+  emit("close");
 }
 </script>
 
@@ -72,7 +89,7 @@ function gotoChapter(chapterIndex) {
 .toc-panel {
   width: 350px;
   height: 100vh;
-  background-color: white;
+  background-color: var(--bg);
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
@@ -93,15 +110,15 @@ function gotoChapter(chapterIndex) {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--fc);
+  background-color: var(--bbc);
 }
 
 .toc-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--fc);
 }
 
 .close-btn {
@@ -109,7 +126,7 @@ function gotoChapter(chapterIndex) {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: var(--fc);
   padding: 0;
   width: 30px;
   height: 30px;
@@ -118,10 +135,6 @@ function gotoChapter(chapterIndex) {
   justify-content: center;
   border-radius: 50%;
   transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: #e9ecef;
 }
 
 .toc-content {
@@ -144,13 +157,9 @@ function gotoChapter(chapterIndex) {
   border-left: 3px solid transparent;
 }
 
-.chapter-item:hover {
-  background-color: #f8f9fa;
-}
-
 .chapter-item.active {
-  background-color: #e3f2fd;
-  border-left-color: #2196f3;
+  background-color: var(--bbc);
+  border-left-color: var(--fc);
 }
 
 .chapter-number {
@@ -159,24 +168,24 @@ function gotoChapter(chapterIndex) {
   justify-content: center;
   width: 24px;
   height: 24px;
-  background-color: #e9ecef;
+  background-color: var(--bbc);
   border-radius: 50%;
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: var(--fc);
   margin-right: 12px;
   flex-shrink: 0;
 }
 
 .chapter-item.active .chapter-number {
-  background-color: #2196f3;
+  background-color: var(--fc);
   color: white;
 }
 
 .chapter-title {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--fc);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -184,57 +193,8 @@ function gotoChapter(chapterIndex) {
 }
 
 .chapter-item.active .chapter-title {
-  color: #1976d2;
+  color: var(--fc);
   font-weight: 500;
-}
-
-/* 暗色模式 */
-.dark-mode .toc-panel {
-  background-color: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.dark-mode .toc-header {
-  background-color: #1a1a1a;
-  border-bottom-color: #444;
-}
-
-.dark-mode .toc-header h3 {
-  color: #e0e0e0;
-}
-
-.dark-mode .close-btn {
-  color: #ccc;
-}
-
-.dark-mode .close-btn:hover {
-  background-color: #404040;
-}
-
-.dark-mode .chapter-item:hover {
-  background-color: #404040;
-}
-
-.dark-mode .chapter-item.active {
-  background-color: #1e3a5f;
-}
-
-.dark-mode .chapter-number {
-  background-color: #404040;
-  color: #ccc;
-}
-
-.dark-mode .chapter-item.active .chapter-number {
-  background-color: #2196f3;
-  color: white;
-}
-
-.dark-mode .chapter-title {
-  color: #e0e0e0;
-}
-
-.dark-mode .chapter-item.active .chapter-title {
-  color: #64b5f6;
 }
 
 /* 滚动条样式 */
@@ -243,27 +203,15 @@ function gotoChapter(chapterIndex) {
 }
 
 .toc-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg);
 }
 
 .toc-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--fc);
   border-radius: 3px;
 }
 
 .toc-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.dark-mode .toc-content::-webkit-scrollbar-track {
-  background: #404040;
-}
-
-.dark-mode .toc-content::-webkit-scrollbar-thumb {
-  background: #666;
-}
-
-.dark-mode .toc-content::-webkit-scrollbar-thumb:hover {
-  background: #777;
+  background: var(--fc);
 }
 </style>

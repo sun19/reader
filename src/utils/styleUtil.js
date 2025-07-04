@@ -22,7 +22,7 @@ export default class StyleUtil {
       letterSpacing: 2.0,
       wordSpacing: 2.5,
       textIndent: 2,
-      paragraphSpacing: 12,
+      paragraphSpacing: 1,
       justify: true,
       hyphenate: true,
       writingMode: "horizontal-tb",

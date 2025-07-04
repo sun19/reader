@@ -47,9 +47,9 @@
             type="range"
             :value="currentTheme.paragraphSpacing"
             @input="updateParagraphSpacing($event.target.value)"
-            min="12"
-            max="30"
-            step="1"
+            min="1"
+            max="2"
+            step="0.1"
             class="range-input"
           />
           <span class="range-value">{{ currentTheme.paragraphSpacing }}</span>

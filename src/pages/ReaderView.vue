@@ -63,18 +63,20 @@
 
     <!-- 阅读内容区域 -->
     <div class="reader-content" ref="contentArea">
-      <ChapterContent
-        :content="currentContent"
-        :chapter-title="currentChapterTitle"
+      <FoliateReader
+        :book-file="currentBookFile"
         :theme="theme"
-        :current-reading-paragraph="currentReadingParagraph"
-        @paragraph-click="handleParagraphClick"
+        :current-location="currentLocation"
+        @location-changed="onLocationChanged"
+        @book-loaded="onBookLoaded"
+        @book-error="onBookError"
+        @progress-changed="onProgressChanged"
+        ref="foliateReader"
       />
-      <div class="progress">{{ currentPage }}/{{ totalPages }}</div>
     </div>
 
     <!-- 底部控制栏 -->
-    <ReaderControls
+    <!-- <ReaderControls
       :current-page="currentPage"
       :total-pages="totalPages"
       :current-chapter="currentChapter"
@@ -84,7 +86,7 @@
       @next-chapter="nextChapter"
       @goto-page="gotoPage"
       @goto-progress="handleProgressChange"
-    />
+    /> -->
 
     <!-- 设置面板 -->
     <ReaderSettings
@@ -111,6 +113,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import FoliateReader from "../components/FoliateReader.vue";
 import ChapterContent from "../components/ChapterContent.vue";
 import ReaderControls from "../components/ReaderControls.vue";
 import ReaderSettings from "../components/ReaderSettings.vue";
@@ -136,6 +139,11 @@ const currentPage = ref(1);
 const showSettings = ref(false);
 const contentArea = ref(null);
 const theme = ref(StyleUtil.getStyle());
+
+// 新增状态
+const currentBookFile = ref(null); // 当前书籍文件对象
+const currentLocation = ref(""); // 当前阅读位置
+const foliateReader = ref(null); // FoliateReader 组件引用
 
 // 获取当前窗口实例
 const appWindow = getCurrentWindow();
@@ -238,31 +246,26 @@ function updateTheme(newTheme) {
 }
 
 /**
- * 加载书籍内容
+ * 加载书籍（修改后的版本）
  */
 async function loadBook() {
   try {
     const bookId = route.params.bookId;
-    if (!bookId) return;
-
-    // 获取书籍信息
     const book = await invoke("get_book", { bookId });
     currentBook.value = book;
 
-    // 读取文件内容
-    const content = await invoke("read_book_content", {
-      filePath: book.file_path,
-    });
-    bookContent.value = content;
+    // 根据文件类型决定使用哪种阅读器
+    if (book.file_type === "epub" || book.file_type === "mobi") {
+      // 创建 File 对象或使用文件路径
+      currentBookFile.value = book.file_path;
+    } else {
+      console.log("不支持");
+    }
 
-    // 解析章节
-    parseChapters(content);
-
-    // 恢复阅读进度
+    // 加载阅读进度
     const progress = await invoke("get_reading_progress", { bookId });
     if (progress) {
-      currentChapter.value = progress.chapter || 0;
-      currentPage.value = progress.page || 1;
+      currentLocation.value = progress.location || "";
     }
   } catch (error) {
     console.error("加载书籍失败:", error);
@@ -270,43 +273,36 @@ async function loadBook() {
 }
 
 /**
- * 解析章节
+ * 处理 foliate-js 位置变化
  */
-function parseChapters(content) {
-  // 简单的章节分割逻辑，可根据实际需要优化
-  const chapterRegex = /第[一二三四五六七八九十\d]+[章折]+[^\n]*/g;
-  const matches = content.match(chapterRegex) || [];
+function onLocationChanged(location) {
+  currentLocation.value = location.cfi || location.href || "";
+  saveProgress();
+}
 
-  if (matches.length === 0) {
-    // 如果没有找到章节标记，整本书作为一章
-    chapters.value = [
-      {
-        title: "正文",
-        content: content,
-      },
-    ];
-    return;
+/**
+ * 处理书籍加载完成
+ */
+function onBookLoaded(bookInfo) {
+  // 更新章节信息
+  if (bookInfo.toc) {
+    chapters.value = bookInfo.toc;
   }
+}
 
-  const chapterList = [];
-  let lastIndex = 0;
+/**
+ * 处理书籍加载错误
+ */
+function onBookError(error) {
+  console.error("书籍加载错误:", error);
+}
 
-  matches.forEach((match, index) => {
-    const startIndex = content.indexOf(match, lastIndex);
-    const nextMatch = matches[index + 1];
-    const endIndex = nextMatch
-      ? content.indexOf(nextMatch, startIndex + 1)
-      : content.length;
-
-    chapterList.push({
-      title: match.trim(),
-      content: content.substring(startIndex, endIndex).trim(),
-    });
-
-    lastIndex = endIndex;
-  });
-
-  chapters.value = chapterList;
+/**
+ * 处理进度变化
+ */
+function onProgressChanged(progress) {
+  // 更新进度显示
+  console.log("阅读进度:", progress);
 }
 
 /**
@@ -346,19 +342,14 @@ function nextChapter() {
   }
 }
 
-function gotoPage(page) {
-  currentPage.value = Math.max(1, Math.min(page, totalPages.value));
-}
-
 /**
- * 保存阅读进度
+ * 保存阅读进度（修改后的版本）
  */
 async function saveProgress() {
   try {
     await invoke("save_reading_progress", {
       bookId: currentBook.value.id,
-      chapter: currentChapter.value,
-      page: currentPage.value,
+      location: currentLocation.value,
     });
   } catch (error) {
     console.error("保存进度失败:", error);
@@ -373,33 +364,6 @@ function goBack() {
   router.push("/");
 }
 
-// 键盘事件处理 - 添加目录快捷键
-function handleKeyPress(event) {
-  switch (event.key) {
-    case "ArrowLeft":
-      prevPage();
-      break;
-    case "ArrowRight":
-      nextPage();
-      break;
-    case "ArrowUp":
-      prevChapter();
-      break;
-    case "ArrowDown":
-      nextChapter();
-      break;
-    case "t":
-    case "T":
-      // 按T键打开/关闭目录
-      toggleToc();
-      break;
-    case "Escape":
-      // ESC键关闭目录和设置
-      showToc.value = false;
-      showSettings.value = false;
-      break;
-  }
-}
 // 鼠标滚轮事件
 function handleWheel(event) {
   // 向上滚动
@@ -469,7 +433,6 @@ function handleProgressChange(data) {
 // 生命周期
 onMounted(async () => {
   await loadBook();
-  document.addEventListener("keydown", handleKeyPress);
   window.addEventListener("resize", handleResize);
   // 监听鼠标滚轮事件
   window.addEventListener("wheel", handleWheel);
@@ -599,7 +562,6 @@ function handleParagraphClick(paragraphIndex) {
   if (isReading.value) {
     // 停止当前朗读
     stopReading();
-
     // 从点击的段落开始朗读
     parseParagraphs();
     if (paragraphIndex < paragraphs.value.length) {
@@ -611,7 +573,6 @@ function handleParagraphClick(paragraphIndex) {
 
 // 在组件卸载时停止朗读
 onUnmounted(() => {
-  document.removeEventListener("keydown", handleKeyPress);
   window.removeEventListener("resize", handleResize);
   window.removeEventListener("wheel", handleWheel);
   stopReading(); // 停止朗读

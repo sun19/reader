@@ -25,7 +25,7 @@
             @click="gotoChapter(index)"
           >
             <span class="chapter-number">{{ index + 1 }}</span>
-            <span class="chapter-title">{{ chapter.title }}</span>
+            <span class="chapter-title">{{ chapter.label }}</span>
           </div>
         </div>
       </div>

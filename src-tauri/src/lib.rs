@@ -268,6 +268,15 @@ fn read_txt_content(file_path: &str) -> Result<String, String> {
 }
 
 /**
+ * 读取文件为字节数组
+ */
+#[tauri::command]
+fn read_file_bytes(file_path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&file_path)
+        .map_err(|e| format!("读取文件失败: {}", e))
+}
+
+/**
  * 读取EPUB文件内容（简化版）
  */
 fn read_epub_content(file_path: &str) -> Result<String, String> {
@@ -326,11 +335,40 @@ fn get_book(book_id: String, library: State<LibraryState>) -> Result<Book, Strin
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct ReadingProgress {
     book_id: String,
-    chapter: usize,
-    page: usize,
+    chapter: Option<usize>,
+    page: Option<usize>,
+    location: Option<String>, // 新增：用于保存 foliate-js 的位置信息
     last_read_time: String,
-    total_reading_time: u64, // 总阅读时长（秒）
-    reading_percentage: f32, // 阅读百分比
+    total_reading_time: u64,
+    reading_percentage: f32,
+}
+
+/**
+ * 保存阅读进度（支持新格式）
+ */
+#[tauri::command]
+fn save_reading_progress(
+    book_id: String,
+    chapter: Option<usize>,
+    page: Option<usize>,
+    location: Option<String>,
+) -> Result<(), String> {
+    let mut progress_data = load_progress_data()?;
+    
+    let progress = ReadingProgress {
+        book_id: book_id.clone(),
+        chapter,
+        page,
+        location,
+        last_read_time: chrono::Utc::now().to_rfc3339(),
+        total_reading_time: 0, // 可以后续实现时间统计
+        reading_percentage: 0.0, // 可以后续实现进度计算
+    };
+    
+    progress_data.progresses.insert(book_id, progress);
+    save_progress_data(&progress_data)?;
+    
+    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -392,62 +430,6 @@ fn save_progress_data(progress_data: &ProgressData) -> Result<(), String> {
     
     Ok(())
 }
-
-/**
- * 保存阅读进度
- */
-#[tauri::command]
-fn save_reading_progress(
-    book_id: String, 
-    chapter: usize, 
-    page: usize, 
-    library: State<LibraryState>
-) -> Result<(), String> {
-    // 更新书库中的进度
-    {
-        let mut library = library.lock().map_err(|e| e.to_string())?;
-        if let Some(book) = library.get_mut(&book_id) {
-            // 简单计算阅读百分比（基于章节和页面）
-            let progress_percentage = if chapter > 0 || page > 1 {
-                ((chapter as f32 + (page as f32 / 100.0)) / 10.0).min(1.0) * 100.0
-            } else {
-                0.0
-            };
-            
-            book.progress = progress_percentage;
-            book.last_read = Some(chrono::Utc::now().to_rfc3339());
-        }
-    }
-    
-    // 保存详细进度到文件
-    let mut progress_data = load_progress_data()?;
-    
-    let reading_progress = ReadingProgress {
-        book_id: book_id.clone(),
-        chapter,
-        page,
-        last_read_time: chrono::Utc::now().to_rfc3339(),
-        total_reading_time: progress_data.progresses
-            .get(&book_id)
-            .map(|p| p.total_reading_time + 60) // 每次保存增加1分钟阅读时长
-            .unwrap_or(60),
-        reading_percentage: {
-            // 更精确的百分比计算
-            if chapter > 0 || page > 1 {
-                ((chapter as f32 + (page as f32 / 100.0)) / 10.0).min(1.0) * 100.0
-            } else {
-                0.0
-            }
-        },
-    };
-    
-    progress_data.progresses.insert(book_id.clone(), reading_progress);
-    save_progress_data(&progress_data)?;
-    
-    println!("已保存阅读进度: 书籍{}, 章节{}, 页面{}", book_id, chapter, page);
-    Ok(())
-}
-
 /**
  * 获取阅读进度
  */
@@ -518,7 +500,8 @@ pub fn run() {
             save_reading_progress,
             get_reading_progress,
             get_reading_statistics,
-            delete_reading_progress
+            delete_reading_progress,
+            read_file_bytes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

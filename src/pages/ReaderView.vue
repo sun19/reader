@@ -62,21 +62,10 @@
     </div>
 
     <!-- 阅读内容区域 -->
-    <div class="reader-content" ref="contentArea">
-      <FoliateReader
-        :book-file="currentBookFile"
-        :theme="theme"
-        :current-location="currentLocation"
-        @location-changed="onLocationChanged"
-        @book-loaded="onBookLoaded"
-        @book-error="onBookError"
-        @progress-changed="onProgressChanged"
-        ref="foliateReader"
-      />
-    </div>
+    <div class="reader-content foliate-viewer" ref="contentArea"></div>
 
     <!-- 底部控制栏 -->
-    <!-- <ReaderControls
+    <ReaderControls
       :current-page="currentPage"
       :total-pages="totalPages"
       :current-chapter="currentChapter"
@@ -86,7 +75,7 @@
       @next-chapter="nextChapter"
       @goto-page="gotoPage"
       @goto-progress="handleProgressChange"
-    /> -->
+    />
 
     <!-- 设置面板 -->
     <ReaderSettings
@@ -113,8 +102,6 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import FoliateReader from "../components/FoliateReader.vue";
-import ChapterContent from "../components/ChapterContent.vue";
 import ReaderControls from "../components/ReaderControls.vue";
 import ReaderSettings from "../components/ReaderSettings.vue";
 import TableOfContents from "../components/TableOfContents.vue";
@@ -126,6 +113,7 @@ import {
 } from "../utils/pageCalculator.js";
 import { Icon } from "@iconify/vue";
 import StyleUtil from "../utils/styleUtil.js";
+import { open } from "../libs/reader.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -141,6 +129,7 @@ const contentArea = ref(null);
 const theme = ref(StyleUtil.getStyle());
 
 // 新增状态
+const useAdvancedReader = ref(true); // 是否使用高级阅读器
 const currentBookFile = ref(null); // 当前书籍文件对象
 const currentLocation = ref(""); // 当前阅读位置
 const foliateReader = ref(null); // FoliateReader 组件引用
@@ -253,20 +242,8 @@ async function loadBook() {
     const bookId = route.params.bookId;
     const book = await invoke("get_book", { bookId });
     currentBook.value = book;
-
-    // 根据文件类型决定使用哪种阅读器
-    if (book.file_type === "epub" || book.file_type === "mobi") {
-      // 创建 File 对象或使用文件路径
-      currentBookFile.value = book.file_path;
-    } else {
-      console.log("不支持");
-    }
-
-    // 加载阅读进度
-    const progress = await invoke("get_reading_progress", { bookId });
-    if (progress) {
-      currentLocation.value = progress.location || "";
-    }
+    if (currentBook.value.file_path)
+      open(currentBook.value, theme.value).catch((e) => console.error(e));
   } catch (error) {
     console.error("加载书籍失败:", error);
   }
@@ -284,9 +261,22 @@ function onLocationChanged(location) {
  * 处理书籍加载完成
  */
 function onBookLoaded(bookInfo) {
+  console.log("书籍加载完成:", bookInfo);
+  console.log("foliate-view 状态:", foliateReader.value?.foliateView);
+
+  // 检查是否有内容
+  if (foliateReader.value?.foliateView) {
+    const view = foliateReader.value.foliateView;
+    console.log("view.book:", view.book);
+    console.log("view.renderer:", view.renderer);
+  }
+
   // 更新章节信息
   if (bookInfo.toc) {
-    chapters.value = bookInfo.toc;
+    chapters.value = bookInfo.toc.map((item) => ({
+      title: item.label,
+      href: item.href,
+    }));
   }
 }
 
@@ -295,6 +285,14 @@ function onBookLoaded(bookInfo) {
  */
 function onBookError(error) {
   console.error("书籍加载错误:", error);
+  console.error("错误详情:", {
+    message: error.message,
+    stack: error.stack,
+    cause: error.cause,
+  });
+
+  // 可以显示错误提示或回退到简单阅读器
+  useAdvancedReader.value = false;
 }
 
 /**
@@ -303,6 +301,45 @@ function onBookError(error) {
 function onProgressChanged(progress) {
   // 更新进度显示
   console.log("阅读进度:", progress);
+}
+/**
+ * 解析章节
+ */
+function parseChapters(content) {
+  // 简单的章节分割逻辑，可根据实际需要优化
+  const chapterRegex = /第[一二三四五六七八九十\d]+[章折]+[^\n]*/g;
+  const matches = content.match(chapterRegex) || [];
+
+  if (matches.length === 0) {
+    // 如果没有找到章节标记，整本书作为一章
+    chapters.value = [
+      {
+        title: "正文",
+        content: content,
+      },
+    ];
+    return;
+  }
+
+  const chapterList = [];
+  let lastIndex = 0;
+
+  matches.forEach((match, index) => {
+    const startIndex = content.indexOf(match, lastIndex);
+    const nextMatch = matches[index + 1];
+    const endIndex = nextMatch
+      ? content.indexOf(nextMatch, startIndex + 1)
+      : content.length;
+
+    chapterList.push({
+      title: match.trim(),
+      content: content.substring(startIndex, endIndex).trim(),
+    });
+
+    lastIndex = endIndex;
+  });
+
+  chapters.value = chapterList;
 }
 
 /**
@@ -342,15 +379,26 @@ function nextChapter() {
   }
 }
 
+function gotoPage(page) {
+  currentPage.value = Math.max(1, Math.min(page, totalPages.value));
+}
 /**
  * 保存阅读进度（修改后的版本）
  */
 async function saveProgress() {
   try {
-    await invoke("save_reading_progress", {
-      bookId: currentBook.value.id,
-      location: currentLocation.value,
-    });
+    if (useAdvancedReader.value) {
+      await invoke("save_reading_progress", {
+        bookId: currentBook.value.id,
+        location: currentLocation.value,
+      });
+    } else {
+      await invoke("save_reading_progress", {
+        bookId: currentBook.value.id,
+        chapter: currentChapter.value,
+        page: currentPage.value,
+      });
+    }
   } catch (error) {
     console.error("保存进度失败:", error);
   }
@@ -364,6 +412,33 @@ function goBack() {
   router.push("/");
 }
 
+// 键盘事件处理 - 添加目录快捷键
+function handleKeyPress(event) {
+  switch (event.key) {
+    case "ArrowLeft":
+      prevPage();
+      break;
+    case "ArrowRight":
+      nextPage();
+      break;
+    case "ArrowUp":
+      prevChapter();
+      break;
+    case "ArrowDown":
+      nextChapter();
+      break;
+    case "t":
+    case "T":
+      // 按T键打开/关闭目录
+      toggleToc();
+      break;
+    case "Escape":
+      // ESC键关闭目录和设置
+      showToc.value = false;
+      showSettings.value = false;
+      break;
+  }
+}
 // 鼠标滚轮事件
 function handleWheel(event) {
   // 向上滚动
@@ -433,6 +508,7 @@ function handleProgressChange(data) {
 // 生命周期
 onMounted(async () => {
   await loadBook();
+  document.addEventListener("keydown", handleKeyPress);
   window.addEventListener("resize", handleResize);
   // 监听鼠标滚轮事件
   window.addEventListener("wheel", handleWheel);
@@ -562,6 +638,7 @@ function handleParagraphClick(paragraphIndex) {
   if (isReading.value) {
     // 停止当前朗读
     stopReading();
+
     // 从点击的段落开始朗读
     parseParagraphs();
     if (paragraphIndex < paragraphs.value.length) {
@@ -573,6 +650,7 @@ function handleParagraphClick(paragraphIndex) {
 
 // 在组件卸载时停止朗读
 onUnmounted(() => {
+  document.removeEventListener("keydown", handleKeyPress);
   window.removeEventListener("resize", handleResize);
   window.removeEventListener("wheel", handleWheel);
   stopReading(); // 停止朗读

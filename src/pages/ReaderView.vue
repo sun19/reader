@@ -22,15 +22,20 @@
         <button
           @click="toggleReading"
           class="control-btn"
-          :title="isReading ? '暂停朗读' : '开始朗读'"
+          :title="playState === PLAY_STATE[0] ? '暂停朗读' : '开始朗读'"
         >
           <Icon
             :icon="
-              isReading ? 'heroicons:pause-20-solid' : 'heroicons:play-20-solid'
+              playState === PLAY_STATE[0]
+                ? 'heroicons:pause-20-solid'
+                : 'heroicons:play-20-solid'
             "
             width="18"
             height="18"
           />
+        </button>
+        <button @click="stopTts" class="control-btn" title="停止朗读">
+          <Icon icon="heroicons:stop-20-solid" width="18" height="18" />
         </button>
         <button @click="toggleSettings" class="control-btn">
           <Icon icon="heroicons:cog-6-tooth-solid" width="18" height="18" />
@@ -89,6 +94,7 @@ import ReaderSettings from "../components/ReaderSettings.vue";
 import TableOfContents from "../components/TableOfContents.vue";
 import { Icon } from "@iconify/vue";
 import StyleUtil from "../utils/styleUtil.js";
+import Tts from "../utils/tts.js";
 import { open } from "../libs/reader.js";
 
 const route = useRoute();
@@ -96,15 +102,36 @@ const router = useRouter();
 
 // 响应式数据
 const currentBook = ref(null);
-const chapters = ref([]);
-const currentChapter = ref(0);
-const currentPage = ref(1);
 const showSettings = ref(false);
 const contentArea = ref(null);
 const theme = ref(StyleUtil.getStyle());
+const PLAY_STATE = ["SPEAKING", "PAUSED", "STOPPED"];
+const playState = ref(PLAY_STATE[2]);
+const spendArr = ["慢", "", "1.0", "1.5", "2.0", "", "快"];
 
-// 新增状态
-const currentLocation = ref(""); // 当前阅读位置
+// 朗读相关
+function toggleReading() {
+  if (playState.value === PLAY_STATE[1]) {
+    console.log("play");
+    Tts.resumeSpeak();
+    playState.value = PLAY_STATE[0];
+  } else if (playState.value === PLAY_STATE[0]) {
+    console.log("pause");
+    Tts.pause();
+    playState.value = PLAY_STATE[1];
+  } else {
+    console.log("play");
+    Tts.init(window.ttsHere, window.ttsNext, window.ttsPrev);
+    Tts.speak();
+    playState.value = PLAY_STATE[0];
+  }
+}
+
+function stopTts() {
+  Tts.stop();
+  playState.value = PLAY_STATE[2];
+}
+
 // 添加目录显示状态
 const showToc = ref(false);
 
@@ -113,15 +140,6 @@ const showToc = ref(false);
  */
 function toggleToc() {
   showToc.value = !showToc.value;
-}
-
-/**
- * 跳转到指定章节
- */
-function gotoChapter(chapterIndex) {
-  currentChapter.value = chapterIndex;
-  currentPage.value = 1;
-  saveProgress();
 }
 
 /**
@@ -152,24 +170,9 @@ async function loadBook() {
 }
 
 /**
- * 保存阅读进度（修改后的版本）
- */
-async function saveProgress() {
-  try {
-    // await invoke("save_reading_progress", {
-    //   bookId: currentBook.value.id,
-    //   location: currentLocation.value,
-    // });
-  } catch (error) {
-    console.error("保存进度失败:", error);
-  }
-}
-
-/**
  * 返回书架
  */
 function goBack() {
-  saveProgress();
   router.push("/");
 }
 
@@ -217,9 +220,7 @@ onMounted(async () => {
 });
 
 // 在组件卸载
-onUnmounted(() => {
-  saveProgress();
-});
+onUnmounted(() => {});
 </script>
 
 <style scoped>

@@ -12,7 +12,7 @@
     <div class="toc-panel" @click.stop>
       <div class="toc-header">
         <h3>目录</h3>
-        <button @click="$emit('close')" class="close-btn">×</button>
+        <button @click="$emit('close')" class="toc-close-btn">×</button>
       </div>
 
       <div class="toc-content">
@@ -94,11 +94,11 @@ const emit = defineEmits(["close"]);
   color: var(--fc);
 }
 
-.close-btn {
+.toc-close-btn {
+  cursor: pointer;
   background: none;
   border: none;
   font-size: 24px;
-  cursor: pointer;
   color: var(--fc);
   padding: 0;
   width: 30px;

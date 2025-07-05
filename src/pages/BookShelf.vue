@@ -27,7 +27,7 @@
             + 书籍
           </button>
           <button @click="refreshLibrary" class="refresh-btn control-btn">
-            <Icon icon="heroicons:arrow-path-solid" width="18" height="18" />
+            <span class="heroicons--arrow-path-solid"></span>
           </button>
         </div>
       </div>
@@ -39,17 +39,17 @@
           class="control-btn minimize-btn"
           title="最小化"
         >
-          <Icon icon="heroicons:minus-16-solid" width="18" height="18" />
+          <span class="heroicons--minus-16-solid"></span>
         </button>
         <button
           @click="toggleMaximize"
           class="control-btn maximize-btn"
           title="最大化/还原"
         >
-          <Icon icon="heroicons:stop" width="18" height="18" />
+          <span class="heroicons--stop"></span>
         </button>
         <button @click="closeWindow" class="control-btn close-btn" title="关闭">
-          <Icon icon="heroicons:x-mark-16-solid" width="18" height="18" />
+          <span class="heroicons--x-mark-16-solid"></span>
         </button>
       </div>
     </div>
@@ -84,7 +84,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "../components/BookCard.vue";
 import { useRouter } from "vue-router";
-import { Icon } from "@iconify/vue";
 import StyleUtil from "../utils/styleUtil";
 
 // 响应式数据
@@ -242,6 +241,10 @@ async function closeWindow() {
 .bookshelf .control-btn {
   background-color: var(--bbc);
   color: var(--fc);
+}
+
+.custom-titlebar {
+  margin-top: 10px;
 }
 /* 书籍容器 */
 .books-container {

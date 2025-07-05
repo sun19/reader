@@ -112,19 +112,13 @@
               :style="{
                 color: theme.fontColor,
                 backgroundColor: theme.backgroundColor,
+                borderColor: theme.btnBgColor,
               }"
             >
-              <div>
-                <Icon
-                  :icon="
-                    index === currentThemeIndex
-                      ? 'icon-selected-copy'
-                      : 'icon-danxuan_weixuanzhong'
-                  "
-                  class="theme-icon"
-                />
-              </div>
               {{ theme.label }}
+              <span v-if="currentThemeIndex === index" class="checkmark"
+                >✓</span
+              >
             </button>
           </div>
         </div>
@@ -137,7 +131,6 @@
 import { computed, ref } from "vue";
 import StyleUtil from "../utils/styleUtil";
 import Theme from "../utils/theme";
-import { Icon } from "@iconify/vue";
 import Tts from "../utils/tts.js";
 import TtsData from "../utils/ttsData.js";
 
@@ -347,6 +340,7 @@ function handleTtsRateChange(value) {
   font-size: 14px;
   text-align: center;
   transition: all 0.2s;
+  position: relative;
 }
 
 .theme-btn:hover {
@@ -355,5 +349,12 @@ function handleTtsRateChange(value) {
 
 .theme-icon {
   font-size: 20px;
+}
+
+.checkmark {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  font-size: 12px;
 }
 </style>

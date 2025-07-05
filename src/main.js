@@ -4,7 +4,6 @@ import { createRouter, createWebHistory } from "vue-router";
 // 导入组件
 import BookShelf from "./pages/BookShelf.vue";
 import ReaderView from "./pages/ReaderView.vue";
-
 // 定义路由
 const routes = [
   { path: "/", component: BookShelf },
@@ -17,4 +16,6 @@ const router = createRouter({
   routes,
 });
 
-createApp(App).use(router).mount("#app");
+const app = createApp(App);
+app.use(router);
+app.mount("#app");

@@ -77,3 +77,7 @@
 .control-btn:hover{
   background-color: #aaa;
 }
+
+.icon{
+  font-size: 18px;
+}

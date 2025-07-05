@@ -12,11 +12,11 @@
       <!-- 操作按钮组 -->
       <div class="action-buttons">
         <button @click="goBack" class="control-btn">
-          <Icon icon="heroicons:home-20-solid" width="18" height="18" />
+          <span class="heroicons--chevron-left-solid"></span>
         </button>
         <!-- 添加目录按钮 -->
         <button @click="toggleToc" class="control-btn" title="目录">
-          <Icon icon="heroicons:list-bullet-20-solid" width="18" height="18" />
+          <span class="heroicons--list-bullet-20-solid" />
         </button>
         <!-- 新增朗读按钮 -->
         <button
@@ -24,21 +24,19 @@
           class="control-btn"
           :title="playState === PLAY_STATE[0] ? '暂停朗读' : '开始朗读'"
         >
-          <Icon
-            :icon="
+          <span
+            :class="
               playState === PLAY_STATE[0]
-                ? 'heroicons:pause-20-solid'
-                : 'heroicons:play-20-solid'
+                ? 'heroicons--pause-20-solid'
+                : 'heroicons--play-20-solid'
             "
-            width="18"
-            height="18"
           />
         </button>
         <button @click="stopTts" class="control-btn" title="停止朗读">
-          <Icon icon="heroicons:stop-20-solid" width="18" height="18" />
+          <span class="heroicons--stop-20-solid"></span>
         </button>
         <button @click="toggleSettings" class="control-btn">
-          <Icon icon="heroicons:cog-6-tooth-solid" width="18" height="18" />
+          <span class="heroicons--cog-6-tooth-solid"></span>
         </button>
       </div>
       <h1 class="book-title">
@@ -51,17 +49,17 @@
           class="control-btn minimize-btn"
           title="最小化"
         >
-          <Icon icon="heroicons:minus-16-solid" width="18" height="18" />
+          <span class="heroicons--minus-16-solid"></span>
         </button>
         <button
           @click="toggleMaximize"
           class="control-btn maximize-btn"
           title="最大化/还原"
         >
-          <Icon icon="heroicons:stop" width="18" height="18" />
+          <span class="heroicons--stop"></span>
         </button>
-        <button @click="closeWindow" class="control-btn close-btn" title="关闭">
-          <Icon icon="heroicons:x-mark-16-solid" width="18" height="18" />
+        <button @click="closeWindow" class="control-btn" title="关闭">
+          <span class="heroicons--x-mark-16-solid"></span>
         </button>
       </div>
     </div>
@@ -92,7 +90,6 @@ import { useRoute, useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import ReaderSettings from "../components/ReaderSettings.vue";
 import TableOfContents from "../components/TableOfContents.vue";
-import { Icon } from "@iconify/vue";
 import StyleUtil from "../utils/styleUtil.js";
 import Tts from "../utils/tts.js";
 import { open } from "../libs/reader.js";
@@ -151,6 +148,7 @@ function toggleSettings() {
 function updateTheme(newTheme) {
   theme.value = newTheme;
   StyleUtil.setStyle(newTheme);
+  window.setStyle(theme.value);
 }
 
 /**
@@ -223,6 +221,10 @@ onUnmounted(() => {});
 </script>
 
 <style scoped>
+.custom-titlebar {
+  margin-top: 10px;
+}
+
 .reader-view {
   display: flex;
   flex-direction: column;

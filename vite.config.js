@@ -28,4 +28,8 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  // 新增 build 配置以支持顶层 await
+  build: {
+    target: "es2022", // 设置构建目标为 es2022 或更高版本
+  },
 }));

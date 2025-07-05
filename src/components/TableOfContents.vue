@@ -45,7 +45,7 @@ defineProps({
 const emit = defineEmits(["close"]);
 </script>
 
-<style scoped>
+<style>
 .toc-overlay {
   position: fixed;
   top: 0;
@@ -116,6 +116,36 @@ const emit = defineEmits(["close"]);
   padding: 10px 0;
 }
 
+.chapter-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.chapter-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.chapter-item a {
+  padding: 0 20px;
+  display: block;
+  color: var(--fc);
+  height: 30px;
+  line-height: 30px;
+}
+
+#toc-view [aria-current="page"] {
+  font-weight: bold;
+  background: var(--bbc);
+}
+
+#toc-view [aria-expanded="false"] svg {
+  transform: rotate(-90deg);
+}
+
+#toc-view [aria-expanded="false"] + [role="group"] {
+  display: none;
+}
 
 /* 滚动条样式 */
 .toc-content::-webkit-scrollbar {

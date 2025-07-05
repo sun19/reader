@@ -5,6 +5,7 @@
 </template>
 
 <style>
+@import "./assets/reset.css";
 @import "./assets/custom-titlebar.css";
 @import "./assets/dark.css";
 

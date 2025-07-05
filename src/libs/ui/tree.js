@@ -109,6 +109,8 @@ export const createTOCView = (toc, onclick) => {
       currentItem.tabIndex = -1;
     }
     const el = map.get(href);
+    console.log(el);
+
     if (!el) {
       currentItem = list[0];
       currentItem.tabIndex = 0;

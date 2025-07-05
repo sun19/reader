@@ -46,6 +46,32 @@
             </option>
           </select>
         </div>
+        <!-- 分栏选择 -->
+        <div class="setting-item">
+          <label>分栏</label>
+          <div class="theme-options">
+            <button
+              v-for="(column, index) in columns"
+              @click="setColumn(index)"
+              class="column-btn"
+              :style="{
+                borderColor:
+                  currentTheme.maxColumnCount == column.columnCount
+                    ? theme.btnBgColor
+                    : 'transparent',
+                color:
+                  currentTheme.maxColumnCount == column.columnCount
+                    ? theme.fontColor
+                    : '',
+              }"
+            >
+              <div>
+                <span :class="column.class"></span>
+              </div>
+              {{ column.label }}
+            </button>
+          </div>
+        </div>
         <!-- 字体大小 -->
         <div class="setting-item">
           <label>字体大小</label>
@@ -78,7 +104,7 @@
             type="range"
             :value="currentTheme.paragraphSpacing"
             @input="updateParagraphSpacing($event.target.value)"
-            min="1"
+            min="0"
             max="2"
             step="0.1"
             class="range-input"
@@ -143,6 +169,19 @@ const props = defineProps({
 const emit = defineEmits(["update-theme", "close"]);
 
 const themes = ref(Theme.getThemes());
+const columns = ref([
+  {
+    label: "单栏",
+    columnCount: 1,
+    class: "material-symbols-light--list-alt-outline",
+  },
+  {
+    label: "双栏",
+    columnCount: 2,
+    class: "material-symbols-light--two-pager-outline",
+  },
+]);
+
 const currentThemeIndex = ref(StyleUtil.getThemeIndex());
 const currentTheme = computed(() => props.theme);
 const currentData = ref(TtsData.getTtsData());
@@ -188,6 +227,14 @@ function setTheme(index) {
   currentTheme.value.fontColor = selectColor.fontColor;
   currentTheme.value.btnBgColor = selectColor.btnBgColor;
 
+  emit("update-theme", currentTheme.value);
+}
+
+/**
+ * 列数设置
+ */
+function setColumn(index) {
+  currentTheme.value.maxColumnCount = columns.value[index].columnCount;
   emit("update-theme", currentTheme.value);
 }
 
@@ -356,5 +403,21 @@ function handleTtsRateChange(value) {
   top: 2px;
   left: 6px;
   font-size: 12px;
+}
+
+.column-btn {
+  width: 80px;
+  padding: 6px;
+  border: 2px solid var(--fc);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  position: relative;
+  color: var(--fc);
+}
+.column-btn:hover {
+  transform: translateY(-2px);
 }
 </style>

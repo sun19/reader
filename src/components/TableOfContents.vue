@@ -16,18 +16,7 @@
       </div>
 
       <div class="toc-content">
-        <div class="chapter-list">
-          <div
-            v-for="(chapter, index) in chapters"
-            :key="index"
-            class="chapter-item"
-            :class="{ active: index === currentChapter }"
-            @click="gotoChapter(index)"
-          >
-            <span class="chapter-number">{{ index + 1 }}</span>
-            <span class="chapter-title">{{ chapter.label }}</span>
-          </div>
-        </div>
+        <div class="chapter-list" id="toc-view"></div>
       </div>
     </div>
   </div>
@@ -43,14 +32,6 @@ defineProps({
     type: Boolean,
     default: false,
   },
-  chapters: {
-    type: Array,
-    default: () => [],
-  },
-  currentChapter: {
-    type: Number,
-    default: 0,
-  },
   theme: {
     type: Object,
     default: () => ({
@@ -61,15 +42,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["close", "goto-chapter"]);
-
-/**
- * 跳转到指定章节
- */
-function gotoChapter(chapterIndex) {
-  emit("goto-chapter", chapterIndex);
-  emit("close");
-}
+const emit = defineEmits(["close"]);
 </script>
 
 <style scoped>
@@ -143,59 +116,6 @@ function gotoChapter(chapterIndex) {
   padding: 10px 0;
 }
 
-.chapter-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.chapter-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-left: 3px solid transparent;
-}
-
-.chapter-item.active {
-  background-color: var(--bbc);
-  border-left-color: var(--fc);
-}
-
-.chapter-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background-color: var(--bbc);
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fc);
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.chapter-item.active .chapter-number {
-  background-color: var(--fc);
-  color: white;
-}
-
-.chapter-title {
-  flex: 1;
-  font-size: 14px;
-  color: var(--fc);
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chapter-item.active .chapter-title {
-  color: var(--fc);
-  font-weight: 500;
-}
 
 /* 滚动条样式 */
 .toc-content::-webkit-scrollbar {

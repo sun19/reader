@@ -25,10 +25,8 @@ body {
   width: 100vw;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #1a1a1a;
-    color: #fff;
-  }
+a {
+  text-decoration: none;
+  color: inherit;
 }
 </style>

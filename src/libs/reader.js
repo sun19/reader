@@ -3,8 +3,8 @@ import { FootnoteHandler } from "./ui/footnotes.js";
 import { createTOCView } from "./ui/tree.js";
 import { Overlayer } from "./ui/overlayer.js";
 import StyleUtil from "../utils/styleUtil.js";
-import RecordLocation from "../utils/recordLocation.js";
 import Tts from "../utils/tts.js";
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * fontsize 字体大小
@@ -256,6 +256,8 @@ class Reader {
   async open(bookObj) {
     this.bookId = bookObj.id;
     this.bookObj = bookObj;
+    console.log(this.bookObj);
+
     this.view = document.createElement("foliate-view");
     $(".foliate-viewer").append(this.view);
     await this.view.open(bookObj.file_path);
@@ -264,22 +266,22 @@ class Reader {
     this.view.addEventListener("click-view", this.#onClickView.bind(this));
     const { book } = this.view;
     this.view.renderer.setStyles?.(getCSS(style));
-    if (!bookObj.lastReadPosition) this.view.renderer.next();
+    if (!bookObj.last_read_position) this.view.renderer.next();
     this.setView(this.view);
-    await this.view.init({ lastLocation: bookObj.lastReadPosition });
-    const slider = $("#progress-slider");
-    slider.dir = book.dir;
-    slider.addEventListener("input", (e) =>
-      this.view.goToFraction(parseFloat(e.target.value))
-    );
+    await this.view.init({ lastLocation: bookObj.last_read_position });
+    // const slider = $("#progress-slider");
+    // slider.dir = book.dir;
+    // slider.addEventListener("input", (e) =>
+    //   this.view.goToFraction(parseFloat(e.target.value))
+    // );
     document.addEventListener("keydown", this.#handleKeydown.bind(this));
     const title = formatLanguageMap(book.metadata?.title) || "Untitled Book";
     document.title = title;
-    $("#side-bar-title").innerText = title;
-    $("#side-bar-author").innerText = formatContributor(book.metadata?.author);
-    Promise.resolve(book.getCover?.())?.then((blob) =>
-      blob ? ($("#side-bar-cover").src = URL.createObjectURL(blob)) : null
-    );
+    // $("#side-bar-title").innerText = title;
+    // $("#side-bar-author").innerText = formatContributor(book.metadata?.author);
+    // Promise.resolve(book.getCover?.())?.then((blob) =>
+    //   blob ? ($("#side-bar-cover").src = URL.createObjectURL(blob)) : null
+    // );
     const toc = book.toc;
     this.tocList = toc;
     if (toc) {
@@ -411,24 +413,24 @@ class Reader {
   //
   #onRelocate({ detail }) {
     const { cfi, fraction, location, tocItem, pageItem } = detail;
-    this.currentChapter = tocItem?.label || this.bookObj.name;
+    this.currentChapter = tocItem?.label || this.bookObj.title;
     const percent = percentFormat.format(fraction);
     const loc = pageItem ? `Page ${pageItem.label}` : `Loc ${location.current}`;
-    const slider = $("#progress-slider");
-    const currentPercent = $("#current-percent");
-    slider.value = fraction;
-    slider.title = `${percent} · ${loc}`;
-    currentPercent.innerText = percent;
-    if (tocItem?.label) $(".chapter-title").innerText = this.currentChapter;
-    else $(".chapter-title").innerText = this.bookObj.name;
+    // const slider = $("#progress-slider");
+    // const currentPercent = $("#current-percent");
+    // slider.value = fraction;
+    // slider.title = `${percent} · ${loc}`;
+    // currentPercent.innerText = percent;
+    // if (tocItem?.label) $(".chapter-title").innerText = this.currentChapter;
+    // else $(".chapter-title").innerText = this.bookObj.title;
     if (tocItem?.href) this.#tocView?.setCurrentHref?.(tocItem.href);
-    //保存到当前阅读记录到localstorage中
-    RecordLocation.recordHtmlLocation(
-      this.bookId,
-      this.currentChapter,
-      percent,
-      cfi
-    );
+    //保存到当前阅读记录
+    invoke("save_reading_progress", {
+      bookId: this.bookId,
+      lastReadPosition: cfi,
+      readingPercentage: percent,
+      currentChapter: this.currentChapter,
+    });
     this.view.renderer.updatePageNumber(style.fontColor);
     //页面更新重新读取
     if (Tts.synth?.speaking) {
@@ -461,7 +463,6 @@ export const open = async (bookObj, currentStyle) => {
   globalThis.reader = reader;
   await reader.open(bookObj);
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
-  reader.renderAnnotation();
 };
 
 window.setStyle = (newStyle) => {
@@ -472,24 +473,6 @@ window.setStyle = (newStyle) => {
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
   reader.view.renderer.setStyles?.(getCSS(style));
   StyleUtil.setStyle(style);
-};
-
-export const noteRefresh = async () => {
-  await reader.renderAnnotation();
-};
-
-window.removeNote = (cfi) => {
-  reader.removeAnnotation(cfi);
-};
-
-window.addAnnotation = (note) => {
-  const annotation = {
-    value: note.cfi,
-    type: note.type,
-    color: note.color,
-    note: note.note,
-  };
-  reader.addAnnotation(annotation);
 };
 
 window.prevSection = () => reader.view.renderer.prevSection();

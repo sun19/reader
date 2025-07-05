@@ -83,14 +83,16 @@
                 backgroundColor: theme.backgroundColor,
               }"
             >
-              <Icon
-                :icon="
-                  index === currentThemeIndex
-                    ? 'icon-selected-copy'
-                    : 'icon-danxuan_weixuanzhong'
-                "
-                class="theme-icon"
-              />
+              <div>
+                <Icon
+                  :icon="
+                    index === currentThemeIndex
+                      ? 'icon-selected-copy'
+                      : 'icon-danxuan_weixuanzhong'
+                  "
+                  class="theme-icon"
+                />
+              </div>
               {{ theme.label }}
             </button>
           </div>
@@ -285,11 +287,12 @@ function updateParagraphSpacing(value) {
 
 .theme-btn {
   width: 80px;
-  padding: 12px;
+  padding: 6px;
   border: 2px solid var(--fc);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  text-align: center;
   transition: all 0.2s;
 }
 

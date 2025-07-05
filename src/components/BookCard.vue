@@ -22,10 +22,10 @@
         <div class="progress-bar">
           <div
             class="progress-fill"
-            :style="{ width: book.progress + '%' }"
+            :style="{ width: book.reading_percentage }"
           ></div>
         </div>
-        <span class="progress-text">{{ Math.round(book.progress) }}%</span>
+        <span class="progress-text">{{ book.reading_percentage }}</span>
       </div>
     </div>
 

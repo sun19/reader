@@ -15,6 +15,37 @@
       </div>
 
       <div class="settings-content">
+        <!-- 语速 -->
+        <div class="setting-item">
+          <label>语速</label>
+          <input
+            type="range"
+            :value="currentData.ttsRate"
+            min="0.5"
+            max="3"
+            step="0.1"
+            class="range-input"
+            @input="handleTtsRateChange($event.target.value)"
+          />
+          <span class="range-value">{{ currentData.ttsRate }}</span>
+        </div>
+        <!-- 语音 -->
+        <div class="setting-item">
+          <label>语音</label>
+          <select
+            :value="currentData.ttsVoiceIndex"
+            @change="selectVoice($event.target.value)"
+            class="font-select"
+          >
+            <option
+              v-for="(voice, index) in Tts.getVoices()"
+              :key="index"
+              :value="index"
+            >
+              {{ voice.name }}
+            </option>
+          </select>
+        </div>
         <!-- 字体大小 -->
         <div class="setting-item">
           <label>字体大小</label>
@@ -104,10 +135,12 @@
 
 <script setup>
 import { computed, ref } from "vue";
-
 import StyleUtil from "../utils/styleUtil";
 import Theme from "../utils/theme";
 import { Icon } from "@iconify/vue";
+import Tts from "../utils/tts.js";
+import TtsData from "../utils/ttsData.js";
+
 // 组件属性
 const props = defineProps({
   theme: Object,
@@ -119,6 +152,7 @@ const emit = defineEmits(["update-theme", "close"]);
 const themes = ref(Theme.getThemes());
 const currentThemeIndex = ref(StyleUtil.getThemeIndex());
 const currentTheme = computed(() => props.theme);
+const currentData = ref(TtsData.getTtsData());
 
 /**
  * 字体大小控制
@@ -171,6 +205,22 @@ function updateParagraphSpacing(value) {
   currentTheme.value.paragraphSpacing = parseFloat(value);
   emit("update-theme", currentTheme.value);
 }
+
+function selectVoice(index) {
+  currentData.value.ttsVoiceIndex = index;
+  const ttsData = {
+    ttsVoiceIndex: index,
+  };
+  Tts.setUtterance(ttsData);
+}
+
+function handleTtsRateChange(value) {
+  currentData.value.ttsRate = parseFloat(value);
+  const ttsData = {
+    ttsRate: parseFloat(value),
+  };
+  Tts.setUtterance(ttsData);
+}
 </script>
 
 <style scoped>
@@ -192,6 +242,7 @@ function updateParagraphSpacing(value) {
   background-color: var(--bg);
   border-radius: 12px;
   width: 600px;
+  height: 80vh;
   max-width: 90vw;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
@@ -225,6 +276,8 @@ function updateParagraphSpacing(value) {
 
 .settings-content {
   padding: 20px;
+  height: calc(100% - 80px);
+  overflow-y: auto;
 }
 
 .setting-item {

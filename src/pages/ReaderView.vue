@@ -42,7 +42,7 @@
         </button>
       </div>
       <h1 class="book-title">
-        {{ currentBook?.title + currentChapterTitle || "未知书籍" }}
+        {{ currentBook?.title || "未知书籍" }}
       </h1>
       <!-- 窗口控制按钮 -->
       <div class="window-controls">
@@ -107,7 +107,6 @@ const contentArea = ref(null);
 const theme = ref(StyleUtil.getStyle());
 const PLAY_STATE = ["SPEAKING", "PAUSED", "STOPPED"];
 const playState = ref(PLAY_STATE[2]);
-const spendArr = ["慢", "", "1.0", "1.5", "2.0", "", "快"];
 
 // 朗读相关
 function toggleReading() {

@@ -2,6 +2,7 @@ import TtsData from "./ttsData";
 
 export default class Tts {
   static synth = window.speechSynthesis;
+
   static voices = this.synth.getVoices();
   static isInit = false;
 

@@ -87,11 +87,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { invoke } from "@tauri-apps/api/core";
 import ReaderSettings from "../components/ReaderSettings.vue";
 import TableOfContents from "../components/TableOfContents.vue";
 import StyleUtil from "../utils/styleUtil.js";
 import Tts from "../utils/tts.js";
+import BookData from "../utils/book";
 import { open } from "../libs/reader.js";
 
 const route = useRoute();
@@ -157,7 +157,7 @@ function updateTheme(newTheme) {
 async function loadBook() {
   try {
     const bookId = route.params.bookId;
-    const book = await invoke("get_book", { bookId });
+    const book = BookData.getBookById(bookId);
     currentBook.value = book;
     if (currentBook.value.file_path)
       open(currentBook.value, theme.value).catch((e) => console.error(e));

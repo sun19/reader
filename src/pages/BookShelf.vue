@@ -85,6 +85,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "../components/BookCard.vue";
 import { useRouter } from "vue-router";
 import StyleUtil from "../utils/styleUtil";
+import BookData from "../utils/book";
 
 // 响应式数据
 const books = ref([]);
@@ -109,7 +110,7 @@ const filteredBooks = computed(() => {
  */
 async function loadLibrary() {
   try {
-    const libraryData = await invoke("get_library");
+    const libraryData = BookData.getBooks();
     books.value = libraryData || [];
   } catch (error) {
     console.error("加载书库失败:", error);
@@ -151,8 +152,9 @@ async function addBookDirectly() {
       };
 
       // 直接添加到书库
-      const newBook = await invoke("add_book", { bookData });
+      const newBook = await invoke("get_book_info", { bookData });
       books.value.push(newBook);
+      BookData.addBook(newBook);
     }
   } catch (error) {
     console.error("添加书籍失败:", error);
@@ -165,7 +167,7 @@ async function addBookDirectly() {
  */
 async function removeBook(bookId) {
   try {
-    await invoke("remove_book", { bookId });
+    BookData.removeBook(bookId);
     books.value = books.value.filter((book) => book.id !== bookId);
   } catch (error) {
     console.error("移除书籍失败:", error);

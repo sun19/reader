@@ -121,20 +121,13 @@ async fn search_book_online(title: &str) -> Result<BookSearchResult, String> {
     Err("未找到相关书籍信息".to_string())
 }
 
-/**
- * 获取书库列表
- */
-#[tauri::command]
-fn get_library(library: State<LibraryState>) -> Result<Vec<Book>, String> {
-    let library = library.lock().map_err(|e| e.to_string())?;
-    Ok(library.values().cloned().collect())
-}
+
 
 /**
  * 添加书籍到书库（增强版）
  */
 #[tauri::command]
-async fn add_book(book_data: BookData, library: State<'_, LibraryState>) -> Result<Book, String> {
+async fn get_book_info(book_data: BookData, library: State<'_, LibraryState>) -> Result<Book, String> {
     // 验证文件是否存在
     let file_path = PathBuf::from(&book_data.file_path);
     if !file_path.exists() {
@@ -211,22 +204,9 @@ async fn add_book(book_data: BookData, library: State<'_, LibraryState>) -> Resu
         current_chapter:String::new(),
     };
     
-    // 添加到书库
-    let mut library = library.lock().map_err(|e| e.to_string())?;
-    library.insert(id, book.clone());
-    
     Ok(book)
 }
 
-/**
- * 从书库移除书籍
- */
-#[tauri::command]
-fn remove_book(book_id: String, library: State<LibraryState>) -> Result<(), String> {
-    let mut library = library.lock().map_err(|e| e.to_string())?;
-    library.remove(&book_id);
-    Ok(())
-}
 
 
 /**
@@ -238,39 +218,6 @@ fn read_file_bytes(file_path: String) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("读取文件失败: {}", e))
 }
 
-/**
- * 获取单本书籍信息
- */
-#[tauri::command]
-fn get_book(book_id: String, library: State<LibraryState>) -> Result<Book, String> {
-    let library = library.lock().map_err(|e| e.to_string())?;
-    library.get(&book_id)
-        .cloned()
-        .ok_or_else(|| "书籍不存在".to_string())
-}
-
-
-/**
- * 保存阅读进度（支持新格式）
- */
-#[tauri::command]
-fn save_reading_progress(
-    book_id: String,
-    last_read_position: String,
-    reading_percentage: String,
-    current_chapter: String,
-    library: State<LibraryState>,
-) -> Result<(), String> {
-    let mut library = library.lock().map_err(|e| e.to_string())?;
-    println!("save_reading_progress: {:?}", book_id);
-    let book = library.get_mut(&book_id).ok_or_else(|| "书籍不存在".to_string())?;
-    book.last_read_position = last_read_position;
-    book.reading_percentage = reading_percentage;
-    book.current_chapter = current_chapter;
-    book.last_read = Some(chrono::Utc::now().to_rfc3339());
-    Ok(())
-}
-
 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -280,11 +227,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(LibraryState::default())
         .invoke_handler(tauri::generate_handler![
-            get_library,
-            add_book,
-            remove_book,
-            get_book,
-            save_reading_progress,
+            get_book_info,
             read_file_bytes
         ])
         .run(tauri::generate_context!())

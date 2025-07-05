@@ -4,7 +4,7 @@ import { createTOCView } from "./ui/tree.js";
 import { Overlayer } from "./ui/overlayer.js";
 import StyleUtil from "../utils/styleUtil.js";
 import Tts from "../utils/tts.js";
-import { invoke } from "@tauri-apps/api/core";
+import BookData from "../utils/book";
 
 /**
  * fontsize 字体大小
@@ -425,11 +425,12 @@ class Reader {
     // else $(".chapter-title").innerText = this.bookObj.title;
     if (tocItem?.href) this.#tocView?.setCurrentHref?.(tocItem.href);
     //保存到当前阅读记录
-    invoke("save_reading_progress", {
-      bookId: this.bookId,
-      lastReadPosition: cfi,
-      readingPercentage: percent,
-      currentChapter: this.currentChapter,
+    BookData.updateBook({
+      ...this.bookObj,
+      id: this.bookId,
+      last_read_position: cfi,
+      reading_percentage: percent,
+      current_chapter: this.currentChapter,
     });
     this.view.renderer.updatePageNumber(style.fontColor);
     //页面更新重新读取

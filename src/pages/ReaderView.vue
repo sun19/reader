@@ -89,6 +89,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import ReaderSettings from "../components/ReaderSettings.vue";
 import TableOfContents from "../components/TableOfContents.vue";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import StyleUtil from "../utils/styleUtil.js";
 import Tts from "../utils/tts.js";
 import BookData from "../utils/book";
@@ -104,6 +105,8 @@ const contentArea = ref(null);
 const theme = ref(StyleUtil.getStyle());
 const PLAY_STATE = ["SPEAKING", "PAUSED", "STOPPED"];
 const playState = ref(PLAY_STATE[2]);
+// 获取当前窗口实例
+const appWindow = getCurrentWindow();
 
 // 朗读相关
 function toggleReading() {

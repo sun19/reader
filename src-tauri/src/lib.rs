@@ -1,11 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use tauri::State;
 use std::sync::Mutex;
 use base64::{Engine as _, engine::general_purpose};
-use std::fs;
-use std::io::Write;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Book {
@@ -127,7 +124,7 @@ async fn search_book_online(title: &str) -> Result<BookSearchResult, String> {
  * 添加书籍到书库（增强版）
  */
 #[tauri::command]
-async fn get_book_info(book_data: BookData, library: State<'_, LibraryState>) -> Result<Book, String> {
+async fn get_book_info(book_data: BookData) -> Result<Book, String> {
     // 验证文件是否存在
     let file_path = PathBuf::from(&book_data.file_path);
     if !file_path.exists() {
@@ -146,10 +143,6 @@ async fn get_book_info(book_data: BookData, library: State<'_, LibraryState>) ->
     let mut cover_data: Option<String> = None;
     let mut cover_url: Option<String> = None;
 
-     // 读取文件内容以计算checksum
-    let file_content = fs::read(&book_data.file_path)
-        .map_err(|e| format!("读取文件内容失败: {}", e))?;
-    
     // 如果是EPUB文件，尝试提取元数据
     if file_type == "epub" {
         match extract_epub_metadata(&book_data.file_path) {

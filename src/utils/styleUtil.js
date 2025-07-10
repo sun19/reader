@@ -24,7 +24,7 @@ export default class StyleUtil {
       textIndent: 2,
       paragraphSpacing: 1,
       justify: true,
-      hyphenate: true,
+      hyphenate: false,
       writingMode: "horizontal-tb",
       fontColor: "#171717",
       backgroundColor: "#ffffff",

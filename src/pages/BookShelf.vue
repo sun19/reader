@@ -23,6 +23,9 @@
 
         <!-- 操作按钮组 -->
         <div class="action-buttons">
+          <button @click="showFormatConverter" class="format-btn control-btn">
+            🔄 格式转换
+          </button>
           <button @click="addBookDirectly" class="add-btn control-btn">
             + 书籍
           </button>
@@ -74,6 +77,12 @@
         <p class="empty-text">拖到此处，或者添加本地书籍</p>
       </div>
     </div>
+
+    <!-- 格式转换弹窗 -->
+    <FormatConverter 
+      :visible="isFormatConverterVisible" 
+      @close="hideFormatConverter" 
+    />
   </div>
 </template>
 
@@ -83,6 +92,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "../components/BookCard.vue";
+import FormatConverter from "../components/FormatConverter.vue";
 import { useRouter } from "vue-router";
 import StyleUtil from "../utils/styleUtil";
 import BookData from "../utils/book";
@@ -91,6 +101,7 @@ import BookData from "../utils/book";
 const books = ref([]);
 const searchQuery = ref("");
 const theme = ref(StyleUtil.getStyle());
+const isFormatConverterVisible = ref(false);
 
 // 获取当前窗口实例
 const appWindow = getCurrentWindow();
@@ -229,6 +240,20 @@ async function closeWindow() {
     console.error("关闭窗口失败:", error);
   }
 }
+
+/**
+ * 显示格式转换弹窗
+ */
+function showFormatConverter() {
+  isFormatConverterVisible.value = true;
+}
+
+/**
+ * 隐藏格式转换弹窗
+ */
+function hideFormatConverter() {
+  isFormatConverterVisible.value = false;
+}
 </script>
 
 <style scoped>
@@ -278,5 +303,15 @@ async function closeWindow() {
 .empty-text {
   margin: 4px 0;
   font-size: 14px;
+}
+
+.format-btn {
+  background-color: var(--bbc);
+  color: var(--fc);
+}
+
+.format-btn:hover {
+  background-color: #007bff;
+  color: white;
 }
 </style>

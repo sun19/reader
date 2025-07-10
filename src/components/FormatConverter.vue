@@ -119,6 +119,7 @@ import { ref, computed } from "vue";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import JSZip from "jszip";
+import Convert from "../utils/convert";
 
 // Props
 const props = defineProps({
@@ -317,16 +318,21 @@ async function convertTxtToEpub() {
     const fileBytes = await invoke("read_file_bytes", {
       filePath: selectedFile.value.path,
     });
-    const txtContent = new TextDecoder("utf-8").decode(
-      new Uint8Array(fileBytes)
-    );
+
+    progressText.value = "正在检测文件编码...";
+    progress.value = 30;
+
+    // 检测文件编码
+    const detectedEncoding = Convert.detectEncoding(fileBytes);
+
+    // 使用检测到的编码解码文本
+    const txtContent = Convert.decodeText(fileBytes, detectedEncoding);
 
     progressText.value = "正在生成EPUB结构...";
     progress.value = 50;
 
     // 将TXT内容转换为HTML并分章节
-    const chapters = splitTextIntoChapters(txtContent);
-    console.log('章节数量:', chapters.length);
+    const chapters = Convert.splitTextIntoChapters(txtContent);
 
     // 创建EPUB结构
     const zip = new JSZip();
@@ -347,7 +353,7 @@ async function convertTxtToEpub() {
     const oebps = zip.folder("OEBPS");
 
     // 添加content.opf（传入章节信息）
-    const contentOpf = generateContentOpf(
+    const contentOpf = Convert.generateContentOpf(
       bookTitle.value || "未知标题",
       bookAuthor.value || "未知作者",
       chapters
@@ -355,7 +361,10 @@ async function convertTxtToEpub() {
     oebps.file("content.opf", contentOpf);
 
     // 添加toc.ncx（传入章节信息）
-    const tocNcx = generateTocNcx(bookTitle.value || "未知标题", chapters);
+    const tocNcx = Convert.generateTocNcx(
+      bookTitle.value || "未知标题",
+      chapters
+    );
     oebps.file("toc.ncx", tocNcx);
 
     progressText.value = "正在生成章节文件...";
@@ -363,7 +372,10 @@ async function convertTxtToEpub() {
 
     // 为每个章节创建HTML文件
     chapters.forEach((chapter, index) => {
-      const chapterHtml = generateChapterHtml(chapter.title, chapter.content);
+      const chapterHtml = Convert.generateChapterHtml(
+        chapter.title,
+        chapter.content
+      );
       oebps.file(`chapter${index + 1}.xhtml`, chapterHtml);
     });
 
@@ -441,166 +453,6 @@ function extractTextFromHtml(html) {
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-/**
- * 将文本分割成章节
- */
-function splitTextIntoChapters(text) {
-  // 简单的章节分割逻辑，可以根据需要调整
-  const chapters = [];
-  const lines = text.split("\n");
-  let currentChapter = { title: "第一章", content: "" };
-  let chapterCount = 1;
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    // 检测章节标题（简单规则）
-    if (
-      trimmedLine.match(
-        /^(第[\d一二三四五六七八九十百千万]+[章节回折]|Chapter\s+\d+|[\d]+\.|序言|前言|后记|附录)/i
-      )
-    ) {
-      if (currentChapter.content.trim()) {
-        chapters.push(currentChapter);
-      }
-      console.log(trimmedLine);
-      chapterCount++;
-      currentChapter = {
-        title: trimmedLine || `第${chapterCount}章`,
-        content: "",
-      };
-    } else {
-      currentChapter.content += line + "\n";
-    }
-  }
-
-  // 添加最后一章
-  if (currentChapter.content.trim()) {
-    chapters.push(currentChapter);
-  }
-
-  // 如果没有检测到章节，将整个文本作为一章
-  if (chapters.length === 0) {
-    chapters.push({
-      title: bookTitle.value || "正文",
-      content: text,
-    });
-  }
-  console.log(chapters);
-
-  return chapters;
-}
-
-/**
- * 生成content.opf文件内容
- */
-function generateContentOpf(title, author, chapters) {
-  // 生成manifest项目
-  const manifestItems = chapters.map((chapter, index) => 
-    `    <item id="chapter${index + 1}" href="chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`
-  ).join('\n');
-  
-  // 生成spine项目
-  const spineItems = chapters.map((chapter, index) => 
-    `    <itemref idref="chapter${index + 1}"/>`
-  ).join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
-    <dc:identifier id="BookId">urn:uuid:${generateUUID()}</dc:identifier>
-    <dc:title>${escapeXml(title)}</dc:title>
-    <dc:creator>${escapeXml(author)}</dc:creator>
-    <dc:language>zh-CN</dc:language>
-    <meta name="cover" content="cover-image"/>
-  </metadata>
-  <manifest>
-    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
-${manifestItems}
-  </manifest>
-  <spine toc="ncx">
-${spineItems}
-  </spine>
-</package>`;
-}
-
-/**
- * 生成toc.ncx文件内容
- */
-function generateTocNcx(title, chapters) {
-  // 生成导航点
-  const navPoints = chapters.map((chapter, index) => 
-    `    <navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">
-      <navLabel>
-        <text>${escapeXml(chapter.title)}</text>
-      </navLabel>
-      <content src="chapter${index + 1}.xhtml"/>
-    </navPoint>`
-  ).join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<ncx version="2005-1" xmlns="http://www.daisy.org/z3986/2005/ncx/">
-  <head>
-    <meta name="dtb:uid" content="urn:uuid:${generateUUID()}"/>
-    <meta name="dtb:depth" content="1"/>
-    <meta name="dtb:totalPageCount" content="0"/>
-    <meta name="dtb:maxPageNumber" content="0"/>
-  </head>
-  <docTitle>
-    <text>${escapeXml(title)}</text>
-  </docTitle>
-  <navMap>
-${navPoints}
-  </navMap>
-</ncx>`;
-}
-
-/**
- * 生成章节HTML文件内容
- */
-function generateChapterHtml(title, content) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-  <title>${escapeXml(title)}</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-</head>
-<body>
-  <h1>${escapeXml(title)}</h1>
-  <div>
-    ${content
-      .split("\n")
-      .map((line) => (line.trim() ? `<p>${escapeXml(line.trim())}</p>` : ""))
-      .join("\n")}
-  </div>
-</body>
-</html>`;
-}
-
-/**
- * 生成UUID
- */
-function generateUUID() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-/**
- * XML转义
- */
-function escapeXml(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 /**

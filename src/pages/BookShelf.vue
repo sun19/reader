@@ -73,15 +73,15 @@
       <!-- 空状态 -->
       <div v-else class="empty-state">
         <div class="empty-icon">📚</div>
-        <p class="empty-text">将 (txt,epub) 文件</p>
+        <p class="empty-text">将 (epub,mobi) 文件</p>
         <p class="empty-text">拖到此处，或者添加本地书籍</p>
       </div>
     </div>
 
     <!-- 格式转换弹窗 -->
-    <FormatConverter 
-      :visible="isFormatConverterVisible" 
-      @close="hideFormatConverter" 
+    <FormatConverter
+      :visible="isFormatConverterVisible"
+      @close="hideFormatConverter"
     />
   </div>
 </template>
@@ -136,7 +136,7 @@ async function refreshLibrary() {
 }
 
 /**
- * 直接添加书籍 - 简化流程
+ * 直接添加书籍
  */
 async function addBookDirectly() {
   try {
@@ -146,7 +146,7 @@ async function addBookDirectly() {
       filters: [
         {
           name: "电子书",
-          extensions: ["txt", "epub"],
+          extensions: ["epub", "mobi"],
         },
       ],
     });
@@ -310,8 +310,8 @@ function hideFormatConverter() {
   color: var(--fc);
 }
 
-.format-btn:hover {
-  background-color: #007bff;
-  color: white;
+.search-input {
+  height: 30px;
+  border-radius: 6px;
 }
 </style>

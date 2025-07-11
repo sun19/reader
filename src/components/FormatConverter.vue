@@ -93,7 +93,6 @@
         <!-- 转换结果 -->
         <div v-if="conversionResult" class="conversion-result">
           <div class="result-success">
-            <div class="success-icon">✅</div>
             <p>转换完成！文件已保存到：</p>
             <p class="result-path">{{ conversionResult.outputPath }}</p>
           </div>
@@ -395,6 +394,7 @@ async function convertTxtToEpub() {
       ],
       defaultPath: selectedFile.value.name.replace(/\.txt$/i, ".epub"),
     });
+    console.log(outputPath);
 
     if (outputPath) {
       // 保存EPUB文件
@@ -539,7 +539,7 @@ function closeModal() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: 10px;
   border-bottom: 1px solid #eee;
 }
 
@@ -568,20 +568,20 @@ function closeModal() {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 10px 10px 0px;
 }
 
 .conversion-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .option-card {
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  padding: 16px;
+  padding: 8px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -615,13 +615,13 @@ function closeModal() {
 }
 
 .file-selection {
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .file-input-area {
   border: 2px dashed #ddd;
   border-radius: 8px;
-  padding: 24px;
+  padding: 6px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
@@ -735,11 +735,11 @@ function closeModal() {
 }
 
 .conversion-result {
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .result-success {
-  padding: 16px;
+  padding: 6px;
   background-color: #d4edda;
   border: 1px solid #c3e6cb;
   border-radius: 8px;
@@ -769,7 +769,7 @@ function closeModal() {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 20px;
+  padding: 10px;
   border-top: 1px solid #eee;
 }
 

@@ -1,5 +1,13 @@
 <template>
-  <div class="book-card" @click="$emit('click', book)">
+  <div
+    class="book-card"
+    :style="{
+      '--bbc': theme.btnBgColor,
+      '--bg': theme.backgroundColor,
+      '--fc': theme.fontColor,
+    }"
+    @click="$emit('click', book)"
+  >
     <!-- 书籍封面 -->
     <div class="book-cover">
       <img
@@ -18,15 +26,11 @@
     <div class="book-info">
       <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
       <p class="book-author" :title="book.author">{{ book.author }}</p>
-      <div class="book-progress">
-        <div class="progress-bar">
-          <div
-            class="progress-fill"
-            :style="{ width: book.reading_percentage }"
-          ></div>
-        </div>
-        <span class="progress-text">{{ book.reading_percentage }}</span>
-      </div>
+    </div>
+
+    <!-- 阅读进度 -->
+    <div class="read-progress">
+      {{ book.reading_percentage }}
     </div>
 
     <!-- 移除按钮 -->
@@ -41,6 +45,8 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
+import StyleUtil from "../utils/styleUtil";
 // 组件属性
 defineProps({
   book: {
@@ -51,7 +57,7 @@ defineProps({
 
 // 组件事件
 defineEmits(["click", "remove"]);
-
+const theme = ref(StyleUtil.getStyle());
 /**
  * 处理图片加载错误
  */
@@ -105,11 +111,11 @@ function handleImageError(event) {
 }
 
 .book-info {
-  padding: 12px;
+  padding: 6px;
 }
 
 .book-title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0 0 4px 0;
   color: #333;
@@ -121,36 +127,23 @@ function handleImageError(event) {
 .book-author {
   font-size: 12px;
   color: #666;
-  margin: 0 0 8px 0;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.book-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 4px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #007bff;
-  transition: width 0.3s;
-}
-
-.progress-text {
-  font-size: 10px;
-  color: #999;
-  min-width: 30px;
+.read-progress {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 60px;
+  height: 20px;
+  background-color: var(--bbc);
+  padding: 0 10px;
+  line-height: 20px;
+  border-radius: 0 10px 10px 0;
+  color: var(--fc);
 }
 
 .remove-btn {

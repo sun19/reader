@@ -211,6 +211,23 @@ fn read_file_bytes(file_path: String) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("读取文件失败: {}", e))
 }
 
+/**
+ * 写入文本文件
+ */
+#[tauri::command]
+fn write_text_file(file_path: String, content: String) -> Result<(), String> {
+    std::fs::write(&file_path, content)
+        .map_err(|e| format!("写入文件失败: {}", e))
+}
+
+/**
+ * 写入二进制文件
+ */
+#[tauri::command]
+fn write_binary_file(file_path: String, data: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&file_path, data)
+        .map_err(|e| format!("写入文件失败: {}", e))
+}
 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -221,7 +238,9 @@ pub fn run() {
         .manage(LibraryState::default())
         .invoke_handler(tauri::generate_handler![
             get_book_info,
-            read_file_bytes
+            read_file_bytes,
+            write_text_file,
+            write_binary_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

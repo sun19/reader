@@ -459,30 +459,32 @@ function extractTextFromHtml(html) {
  * 保存文本文件
  */
 async function saveTextFile(filePath, content) {
-  // 创建Blob并触发下载
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filePath.split("\\").pop() || filePath.split("/").pop();
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    await invoke("write_text_file", {
+      filePath: filePath,
+      content: content
+    });
+  } catch (error) {
+    throw new Error(`保存文件失败: ${error}`);
+  }
 }
 
 /**
  * 保存二进制文件
  */
 async function saveBinaryFile(filePath, blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filePath.split("\\").pop() || filePath.split("/").pop();
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    // 将 Blob 转换为 Uint8Array
+    const arrayBuffer = await blob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    await invoke("write_binary_file", {
+      filePath: filePath,
+      data: Array.from(uint8Array)
+    });
+  } catch (error) {
+    throw new Error(`保存文件失败: ${error}`);
+  }
 }
 
 /**

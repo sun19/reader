@@ -215,6 +215,10 @@ const animations = ref([
     label: "平移",
     value: "translate",
   },
+  {
+    label: "仿真",
+    value: "realistic",
+  },
 ]);
 
 const currentThemeIndex = ref(StyleUtil.getThemeIndex());

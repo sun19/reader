@@ -43,8 +43,8 @@ const makeZipLoader = async (file) => {
   const map = new Map(entries.map((entry) => [entry.filename, entry]));
   const load =
     (f) =>
-    (name, ...args) =>
-      map.has(name) ? f(map.get(name), ...args) : null;
+      (name, ...args) =>
+        map.has(name) ? f(map.get(name), ...args) : null;
   const loadText = load((entry) => entry.getData(new TextWriter()));
   const loadBlob = load((entry, type) => entry.getData(new BlobWriter(type)));
   const getSize = (name) => map.get(name)?.uncompressedSize ?? 0;
@@ -55,18 +55,18 @@ const getFileEntries = async (entry) =>
   entry.isFile
     ? entry
     : (
-        await Promise.all(
-          Array.from(
-            await new Promise((resolve, reject) =>
-              entry.createReader().readEntries(
-                (entries) => resolve(entries),
-                (error) => reject(error)
-              )
-            ),
-            getFileEntries
-          )
+      await Promise.all(
+        Array.from(
+          await new Promise((resolve, reject) =>
+            entry.createReader().readEntries(
+              (entries) => resolve(entries),
+              (error) => reject(error)
+            )
+          ),
+          getFileEntries
         )
-      ).flat();
+      )
+    ).flat();
 
 const makeDirectoryLoader = async (entry) => {
   const entries = await getFileEntries(entry);
@@ -93,9 +93,9 @@ const makeDirectoryLoader = async (entry) => {
   return { loadText, loadBlob, getSize };
 };
 
-export class ResponseError extends Error {}
-export class NotFoundError extends Error {}
-export class UnsupportedTypeError extends Error {}
+export class ResponseError extends Error { }
+export class NotFoundError extends Error { }
+export class UnsupportedTypeError extends Error { }
 
 const fetchFile = async (url) => {
   try {

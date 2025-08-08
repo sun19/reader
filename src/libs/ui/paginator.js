@@ -67,8 +67,8 @@ const bisectNode = (doc, node, cb, start = 0, end = node.nodeValue.length) => {
   return result < 0
     ? bisectNode(doc, node, cb, start, mid)
     : result > 0
-    ? bisectNode(doc, node, cb, mid, end)
-    : mid;
+      ? bisectNode(doc, node, cb, mid, end)
+      : mid;
 };
 
 const {
@@ -142,20 +142,20 @@ const getVisibleRange = (doc, start, end, mapRect) => {
     from.nodeType === 1
       ? 0
       : bisectNode(doc, from, (a, b) => {
-          const p = mapRect(getBoundingClientRect(a));
-          const q = mapRect(getBoundingClientRect(b));
-          if (p.right < start && q.left > start) return 0;
-          return q.left > start ? -1 : 1;
-        });
+        const p = mapRect(getBoundingClientRect(a));
+        const q = mapRect(getBoundingClientRect(b));
+        if (p.right < start && q.left > start) return 0;
+        return q.left > start ? -1 : 1;
+      });
   const endOffset =
     to.nodeType === 1
       ? 0
       : bisectNode(doc, to, (a, b) => {
-          const p = mapRect(getBoundingClientRect(a));
-          const q = mapRect(getBoundingClientRect(b));
-          if (p.right < end && q.left > end) return 0;
-          return q.left > end ? -1 : 1;
-        });
+        const p = mapRect(getBoundingClientRect(a));
+        const q = mapRect(getBoundingClientRect(b));
+        if (p.right < end && q.left > end) return 0;
+        return q.left > end ? -1 : 1;
+      });
 
   const range = doc.createRange();
   range.setStart(from, startOffset);
@@ -376,8 +376,8 @@ class View {
         "max-width": vertical
           ? `${width - margin * 2}px`
           : maxWidth !== "none" && maxWidth !== "0px"
-          ? maxWidth
-          : "100%",
+            ? maxWidth
+            : "100%",
         "object-fit": "contain",
         "page-break-inside": "avoid",
         "break-inside": "avoid",
@@ -397,8 +397,8 @@ class View {
       const contentStart = this.#vertical
         ? 0
         : this.#rtl
-        ? rootRect.right - contentRect.right
-        : contentRect.left - rootRect.left;
+          ? rootRect.right - contentRect.right
+          : contentRect.left - rootRect.left;
       const contentSize = contentStart + contentRect[side];
       const pageCount = Math.ceil(contentSize / this.#size);
       const expandedSize = pageCount * this.#size;
@@ -664,7 +664,7 @@ export class Paginator extends HTMLElement {
         this.scrolled
           ? null
           : // NOTE: `requestAnimationFrame` is needed in WebKit
-            requestAnimationFrame(() => this.#scrollToAnchor(e.target))
+          requestAnimationFrame(() => this.#scrollToAnchor(e.target))
       );
     });
 
@@ -675,9 +675,8 @@ export class Paginator extends HTMLElement {
     this.#mediaQuery.addEventListener("change", this.#mediaQueryListener);
   }
   updatePageNumber(fc) {
-    this.#footer.innerHTML = `<span>第 ${this.page} 页 / 总 ${
-      this.pages - 2
-    } 页</span>`;
+    this.#footer.innerHTML = `<span>第 ${this.page} 页 / 总 ${this.pages - 2
+      } 页</span>`;
     this.#footer.style =
       "color:" +
       fc +
@@ -821,8 +820,8 @@ export class Paginator extends HTMLElement {
         ? "scrollLeft"
         : "scrollTop"
       : scrolled
-      ? "scrollTop"
-      : "scrollLeft";
+        ? "scrollTop"
+        : "scrollLeft";
   }
   get sideProp() {
     const { scrolled } = this;
@@ -831,8 +830,8 @@ export class Paginator extends HTMLElement {
         ? "width"
         : "height"
       : scrolled
-      ? "height"
-      : "width";
+        ? "height"
+        : "width";
   }
   get size() {
     return this.#container.getBoundingClientRect()[this.sideProp];
@@ -874,7 +873,7 @@ export class Paginator extends HTMLElement {
     const d = velocity * (this.#rtl ? -size : size);
     const page = Math.floor(
       Math.max(min, Math.min(max, (start + end) / 2 + (isNaN(d) ? 0 : d))) /
-        size
+      size
     );
 
     this.#scrollToPage(page, "snap").then(() => {
@@ -939,17 +938,17 @@ export class Paginator extends HTMLElement {
       const margin = this.#margin;
       return this.#vertical
         ? ({ left, right }) => ({
-            left: size - right - margin,
-            right: size - left - margin,
-          })
+          left: size - right - margin,
+          right: size - left - margin,
+        })
         : ({ top, bottom }) => ({ left: top + margin, right: bottom + margin });
     }
     const pxSize = this.pages * this.size;
     return this.#rtl
       ? ({ left, right }) => ({ left: pxSize - right, right: pxSize - left })
       : this.#vertical
-      ? ({ top, bottom }) => ({ left: top, right: bottom })
-      : (f) => f;
+        ? ({ top, bottom }) => ({ left: top, right: bottom })
+        : (f) => f;
   }
   async #scrollToRect(rect, reason) {
     if (this.scrolled) {
@@ -976,23 +975,41 @@ export class Paginator extends HTMLElement {
     }
     // FIXME: vertical-rl only, not -lr
     if (this.scrolled && this.#vertical) offset = -offset;
-    if ((reason === "snap" || smooth) && this.hasAttribute("animated"))
-      return animate(
-        element[scrollProp],
-        offset,
-        300,
-        easeOutQuad,
-        (x) => (element[scrollProp] = x)
-      ).then(() => {
-        this.#scrollBounds = [
+
+    // 获取当前动画类型
+    const animationType = this.getAttribute('data-animation') || 'translate';
+
+    if ((reason === "snap" || smooth) && animationType !== 'none') {
+      // 根据动画类型选择不同的动画效果
+      if (animationType === 'realistic') {
+        // 仿真翻页动画 - 使用3D变换
+        return this.#animateRealisticTurn(element[this.scrollProp], offset).then(() => {
+          this.#scrollBounds = [
+            offset,
+            this.atStart ? 0 : size,
+            this.atEnd ? 0 : size,
+          ];
+          this.#afterScroll(reason);
+        });
+      } else {
+        // 默认平移动画
+        return animate(
+          element[this.scrollProp],
           offset,
-          this.atStart ? 0 : size,
-          this.atEnd ? 0 : size,
-        ];
-        this.#afterScroll(reason);
-      });
-    else {
-      element[scrollProp] = offset;
+          300,
+          easeOutQuad,
+          (x) => (element[this.scrollProp] = x)
+        ).then(() => {
+          this.#scrollBounds = [
+            offset,
+            this.atStart ? 0 : size,
+            this.atEnd ? 0 : size,
+          ];
+          this.#afterScroll(reason);
+        });
+      }
+    } else {
+      element[this.scrollProp] = offset;
       this.#scrollBounds = [
         offset,
         this.atStart ? 0 : size,
@@ -1004,6 +1021,44 @@ export class Paginator extends HTMLElement {
   async #scrollToPage(page, reason, smooth) {
     const offset = this.size * (this.#rtl ? -page : page);
     return this.#scrollTo(offset, reason, smooth);
+  }
+
+  // 新增仿真翻页动画方法
+  async #animateRealisticTurn(from, to) {
+    const element = this.#container;
+    const direction = to > from ? 1 : -1;
+    const distance = Math.abs(to - from);
+
+    // 创建仿真翻页效果
+    return new Promise((resolve) => {
+      let start;
+      const duration = 600; // 仿真动画时长
+
+      const step = (now) => {
+        start ??= now;
+        const fraction = Math.min(1, (now - start) / duration);
+
+        // 使用缓动函数模拟真实翻页
+        const easeFraction = this.#easeInOutCubic(fraction);
+        const currentPos = from + (to - from) * easeFraction;
+
+        // 添加页面弯曲效果
+        const pageCurve = Math.sin(fraction * Math.PI) * 20 * direction;
+
+        element[this.scrollProp] = currentPos;
+
+        // 可以在这里添加更多的视觉效果，如阴影、页面弯曲等
+
+        if (fraction < 1) requestAnimationFrame(step);
+        else resolve();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  // 缓动函数
+  #easeInOutCubic(x) {
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
   }
   async scrollToAnchor(anchor, select) {
     return this.#scrollToAnchor(anchor, select ? "selection" : "navigation");
@@ -1102,7 +1157,7 @@ export class Paginator extends HTMLElement {
     }
     await this.scrollToAnchor(
       (typeof anchor === "function" ? anchor(this.#view.document) : anchor) ??
-        0,
+      0,
       select
     );
     if (hasFocus) this.focusView();

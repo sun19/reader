@@ -229,14 +229,14 @@ const partAction = [
 ];
 let style;
 const footnoteDialog = document.getElementById("footnote-dialog");
-const onSelectionEnd = (selection) => {};
+const onSelectionEnd = (selection) => { };
 
-const commonCtxMenuHide = () => {};
+const commonCtxMenuHide = () => { };
 
-const onAnnotationClick = (note) => {};
+const onAnnotationClick = (note) => { };
 
 const notesRefresh = (bookId) => {
-  return new Promise((resolve, reject) => {});
+  return new Promise((resolve, reject) => { });
 };
 class Reader {
   bookId;
@@ -251,7 +251,7 @@ class Reader {
   tocList;
   rootToc;
   currentChapter;
-  constructor() {}
+  constructor() { }
   //async open(file, bookId, cfi)
   async open(bookObj) {
     this.bookId = bookObj.id;
@@ -365,6 +365,7 @@ class Reader {
 
   #onClickView({ detail: { cx, cy } }) {
     const action = partAction[clickPart(cx, cy)];
+
     if ($("#popup") && $("#popup").style.display !== "none") {
       commonCtxMenuHide();
     } else {
@@ -467,9 +468,13 @@ export const open = async (bookObj, currentStyle) => {
   globalThis.reader = reader;
   await reader.open(bookObj);
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
+
   // 根据设置启用或禁用翻页动画
-  const animated = style.pageAnimation === "translate" ? "true" : "false";
+  const animated = style.pageAnimation !== "none" ? "true" : "false";
   reader.view.renderer.setAttribute("animated", animated);
+
+  // 设置动画类型属性
+  reader.view.renderer.setAttribute("data-animation", style.pageAnimation);
 };
 
 window.setStyle = (newStyle) => {
@@ -478,9 +483,14 @@ window.setStyle = (newStyle) => {
     ...newStyle,
   };
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
+
   // 根据设置启用或禁用翻页动画
-  const animated = style.pageAnimation === "translate" ? "true" : "false";
+  const animated = style.pageAnimation !== "none" ? "true" : "false";
   reader.view.renderer.setAttribute("animated", animated);
+
+  // 设置动画类型属性
+  reader.view.renderer.setAttribute("data-animation", style.pageAnimation);
+
   reader.view.renderer.setStyles?.(getCSS(style));
   StyleUtil.setStyle(style);
 };

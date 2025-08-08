@@ -148,6 +148,29 @@
             </button>
           </div>
         </div>
+        <!-- 翻页动画 -->
+        <div class="setting-item">
+          <label>翻页动画</label>
+          <div class="animation-options">
+            <button
+              v-for="animation in animations"
+              @click="setPageAnimation(animation.value)"
+              class="animation-btn"
+              :style="{
+                borderColor:
+                  currentTheme.pageAnimation == animation.value
+                    ? theme.btnBgColor
+                    : 'transparent',
+                color:
+                  currentTheme.pageAnimation == animation.value
+                    ? theme.fontColor
+                    : '',
+              }"
+            >
+              {{ animation.label }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -179,6 +202,18 @@ const columns = ref([
     label: "双栏",
     columnCount: 2,
     class: "material-symbols-light--two-pager-outline",
+  },
+]);
+
+// 新增翻页动画选项
+const animations = ref([
+  {
+    label: "无动画",
+    value: "none",
+  },
+  {
+    label: "平移",
+    value: "translate",
   },
 ]);
 
@@ -260,6 +295,14 @@ function handleTtsRateChange(value) {
     ttsRate: parseFloat(value),
   };
   Tts.setUtterance(ttsData);
+}
+
+/**
+ * 翻页动画设置
+ */
+function setPageAnimation(animation) {
+  currentTheme.value.pageAnimation = animation;
+  emit("update-theme", currentTheme.value);
 }
 </script>
 
@@ -418,6 +461,29 @@ function handleTtsRateChange(value) {
   color: var(--fc);
 }
 .column-btn:hover {
+  transform: translateY(-2px);
+}
+
+.animation-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.animation-btn {
+  width: 80px;
+  padding: 6px;
+  border: 2px solid var(--fc);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  position: relative;
+  color: var(--fc);
+}
+
+.animation-btn:hover {
   transform: translateY(-2px);
 }
 </style>

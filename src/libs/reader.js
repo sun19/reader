@@ -461,13 +461,15 @@ export const open = async (bookObj, currentStyle) => {
     fontFamily: "Microsoft YaHei",
     btnBgColor: "#cccccc",
     maxColumnCount: 2,
+    pageAnimation: "translate",
   };
   const reader = new Reader();
   globalThis.reader = reader;
   await reader.open(bookObj);
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
-  // 确保启用翻页动画
-  reader.view.renderer.setAttribute("animated", "true");
+  // 根据设置启用或禁用翻页动画
+  const animated = style.pageAnimation === "translate" ? "true" : "false";
+  reader.view.renderer.setAttribute("animated", animated);
 };
 
 window.setStyle = (newStyle) => {
@@ -476,6 +478,9 @@ window.setStyle = (newStyle) => {
     ...newStyle,
   };
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
+  // 根据设置启用或禁用翻页动画
+  const animated = style.pageAnimation === "translate" ? "true" : "false";
+  reader.view.renderer.setAttribute("animated", animated);
   reader.view.renderer.setStyles?.(getCSS(style));
   StyleUtil.setStyle(style);
 };

@@ -31,6 +31,7 @@ export default class StyleUtil {
       fontFamily: "Microsoft YaHei",
       btnBgColor: "#cccccc",
       maxColumnCount: 2,
+      pageAnimation: "translate", // 新增翻页动画设置，默认为平移
     };
     let json = localStorage.getItem("style");
     return JSON.parse(json) || defaultStyle;

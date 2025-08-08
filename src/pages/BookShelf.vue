@@ -24,13 +24,11 @@
         <!-- 操作按钮组 -->
         <div class="action-buttons">
           <button @click="showFormatConverter" class="format-btn control-btn">
-            🔄 格式转换
+            <div class="heroicons--arrow-path-solid"></div>
+            <div>格式转换</div>
           </button>
           <button @click="addBookDirectly" class="add-btn control-btn">
             + 书籍
-          </button>
-          <button @click="refreshLibrary" class="refresh-btn control-btn">
-            <span class="heroicons--arrow-path-solid"></span>
           </button>
         </div>
       </div>
@@ -126,13 +124,6 @@ async function loadLibrary() {
   } catch (error) {
     console.error("加载书库失败:", error);
   }
-}
-
-/**
- * 刷新书库
- */
-async function refreshLibrary() {
-  await loadLibrary();
 }
 
 /**
@@ -308,6 +299,16 @@ function hideFormatConverter() {
 .format-btn {
   background-color: var(--bbc);
   color: var(--fc);
+  display: flex;
+  align-items: center;
+  line-height: 14px;
+}
+
+.format-btn .heroicons--arrow-path-solid {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  margin-right: 4px;
 }
 
 .search-input {

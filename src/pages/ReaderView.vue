@@ -280,4 +280,96 @@ onUnmounted(() => {});
 .reader-content::v-deep(.foliate-view) {
   transition: transform 0.3s ease-out;
 }
+/* 仿真翻页动画效果 */
+.reader-content::v-deep(foliate-paginator[data-animation="realistic"]) {
+  perspective: 2000px;
+  transform-style: preserve-3d;
+}
+
+.reader-content::v-deep(foliate-paginator[data-animation="realistic"]) .page {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
+  .page.turning-prev {
+  transform-origin: right center;
+  animation: turnPagePrev 0.8s ease-in-out forwards;
+}
+
+.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
+  .page.turning-next {
+  transform-origin: left center;
+  animation: turnPageNext 0.8s ease-in-out forwards;
+}
+
+@keyframes turnPagePrev {
+  0% {
+    transform: rotateY(0deg) rotateZ(0deg);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  25% {
+    transform: rotateY(-45deg) rotateZ(5deg);
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: rotateY(-90deg) rotateZ(10deg);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+  75% {
+    transform: rotateY(-135deg) rotateZ(5deg);
+    box-shadow: -15px 0 40px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    transform: rotateY(-180deg) rotateZ(0deg);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes turnPageNext {
+  0% {
+    transform: rotateY(0deg) rotateZ(0deg);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  25% {
+    transform: rotateY(45deg) rotateZ(-5deg);
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: rotateY(90deg) rotateZ(-10deg);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+  75% {
+    transform: rotateY(135deg) rotateZ(-5deg);
+    box-shadow: 15px 0 40px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    transform: rotateY(180deg) rotateZ(0deg);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+/* 添加页面阴影效果 */
+.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
+  .page-shadow {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
+  .page-shadow.active {
+  opacity: 1;
+}
 </style>

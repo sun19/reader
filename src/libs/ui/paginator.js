@@ -1029,29 +1029,116 @@ export class Paginator extends HTMLElement {
     const direction = to > from ? 1 : -1;
     const distance = Math.abs(to - from);
 
-    // 创建仿真翻页效果
+    // 创建翻页效果容器
+    const pageContainer = document.createElement('div');
+    pageContainer.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      perspective: 2000px;
+      pointer-events: none;
+      z-index: 1000;
+    `;
+
+    // 创建翻页元素
+    const flippingPage = document.createElement('div');
+    flippingPage.style.cssText = `
+      position: absolute;
+      top: 0;
+      ${direction > 0 ? 'right: 0' : 'left: 0'};
+      width: 50%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform-origin: ${direction > 0 ? 'left center' : 'right center'};
+      background: linear-gradient(
+        to ${direction > 0 ? 'left' : 'right'},
+        rgba(0,0,0,0.1) 0%,
+        rgba(0,0,0,0.05) 10%,
+        rgba(0,0,0,0) 100%
+      );
+      box-shadow: 
+        -5px 0 15px rgba(0,0,0,0.3),
+        inset -5px 0 10px rgba(0,0,0,0.1);
+    `;
+
+    // 创建页面内容
+    const pageContent = document.createElement('div');
+    pageContent.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: ${getComputedStyle(element).backgroundColor || '#ffffff'};
+      backface-visibility: hidden;
+      transform: rotateY(0deg);
+    `;
+
+    // 创建页面背面
+    const pageBack = document.createElement('div');
+    pageBack.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: ${getComputedStyle(element).backgroundColor || '#ffffff'};
+      backface-visibility: hidden;
+      transform: rotateY(180deg);
+    `;
+
+    flippingPage.appendChild(pageContent);
+    flippingPage.appendChild(pageBack);
+    pageContainer.appendChild(flippingPage);
+    element.appendChild(pageContainer);
+
     return new Promise((resolve) => {
       let start;
-      const duration = 600; // 仿真动画时长
+      const duration = 800; // 翻页动画时长
 
       const step = (now) => {
         start ??= now;
         const fraction = Math.min(1, (now - start) / duration);
 
-        // 使用缓动函数模拟真实翻页
+        // 使用自定义缓动函数模拟真实翻页物理效果
         const easeFraction = this.#easeInOutCubic(fraction);
         const currentPos = from + (to - from) * easeFraction;
 
-        // 添加页面弯曲效果
-        const pageCurve = Math.sin(fraction * Math.PI) * 20 * direction;
+        // 计算翻页角度
+        const maxAngle = direction > 0 ? -180 : 180;
+        const angle = maxAngle * easeFraction;
 
+        // 计算页面弯曲效果
+        const bendAmount = Math.sin(fraction * Math.PI) * 15;
+        const shadowIntensity = Math.sin(fraction * Math.PI) * 0.5;
+
+        // 应用3D变换
+        flippingPage.style.transform = `
+          rotateY(${angle}deg)
+          rotateZ(${bendAmount * direction}deg)
+          scale(${1 - Math.sin(fraction * Math.PI) * 0.05})
+        `;
+
+        // 更新阴影效果
+        flippingPage.style.boxShadow = `
+          -5px 0 15px rgba(0,0,0,${0.3 + shadowIntensity}),
+          inset -5px 0 10px rgba(0,0,0,${0.1 + shadowIntensity * 0.5})
+        `;
+
+        // 更新页面位置
         element[this.scrollProp] = currentPos;
 
-        // 可以在这里添加更多的视觉效果，如阴影、页面弯曲等
-
-        if (fraction < 1) requestAnimationFrame(step);
-        else resolve();
+        if (fraction < 1) {
+          requestAnimationFrame(step);
+        } else {
+          // 动画完成，清理DOM
+          element.removeChild(pageContainer);
+          resolve();
+        }
       };
+
       requestAnimationFrame(step);
     });
   }
@@ -1059,6 +1146,18 @@ export class Paginator extends HTMLElement {
   // 缓动函数
   #easeInOutCubic(x) {
     return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  }
+  // 新增页面弯曲效果函数
+  #getPageBend(fraction, direction) {
+    // 模拟页面在翻动时的自然弯曲
+    const bendIntensity = Math.sin(fraction * Math.PI);
+    return bendIntensity * 15 * direction;
+  }
+
+  // 新增阴影强度函数
+  #getShadowIntensity(fraction) {
+    // 模拟翻页时阴影的自然变化
+    return Math.sin(fraction * Math.PI) * 0.5;
   }
   async scrollToAnchor(anchor, select) {
     return this.#scrollToAnchor(anchor, select ? "selection" : "navigation");

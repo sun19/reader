@@ -261,6 +261,8 @@ class Reader {
     this.view = document.createElement("foliate-view");
     $(".foliate-viewer").append(this.view);
     await this.view.open(bookObj.file_path);
+    // 启用翻页动画
+    this.view.renderer.setAttribute("animated", "true");
     this.view.addEventListener("load", this.#onLoad.bind(this));
     this.view.addEventListener("relocate", this.#onRelocate.bind(this));
     this.view.addEventListener("click-view", this.#onClickView.bind(this));
@@ -464,6 +466,8 @@ export const open = async (bookObj, currentStyle) => {
   globalThis.reader = reader;
   await reader.open(bookObj);
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
+  // 确保启用翻页动画
+  reader.view.renderer.setAttribute("animated", "true");
 };
 
 window.setStyle = (newStyle) => {

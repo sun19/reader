@@ -65,7 +65,7 @@
     </div>
 
     <!-- 阅读内容区域 -->
-    <div class="reader-content foliate-viewer" ref="contentArea"></div>
+    <div class="reader-content foliate-viewer" ref="contentArea" animated></div>
 
     <!-- 设置面板 -->
     <ReaderSettings
@@ -263,5 +263,38 @@ onUnmounted(() => {});
 .reader-content {
   flex: 1;
   overflow: hidden;
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+/* 翻页动画效果 */
+.reader-content::v-deep(foliate-paginator) {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 页面切换时的淡入淡出效果 */
+.reader-content::v-deep(foliate-paginator[flow="scrolled"]) {
+  transition: scroll-position 0.3s ease-in-out;
+}
+
+/* 触摸翻页时的平滑效果 */
+.reader-content::v-deep(.foliate-view) {
+  transition: transform 0.3s ease-out;
+}
+
+/* 翻页时的阴影效果 */
+.reader-content::v-deep(foliate-paginator)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  transition: box-shadow 0.3s ease-in-out;
+  z-index: 10;
+}
+
+.reader-content::v-deep(foliate-paginator):hover::before {
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
 }
 </style>

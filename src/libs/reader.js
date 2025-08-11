@@ -367,7 +367,6 @@ class Reader {
 
     const contents = this.view.renderer?.getContents?.();
     const doc = contents?.[0]?.doc;
-    console.log(doc);
 
     if (!doc) return;
 
@@ -411,17 +410,16 @@ class Reader {
    * @param {string} color 高亮颜色
    */
   highlightTextNode(textNode, regex, color) {
-    const text = textNode.textContent;
+    let text = textNode.textContent;
     let match;
     let lastIndex = 0;
     const fragments = [];
 
     // 重置正则表达式的lastIndex
     regex.lastIndex = 0;
-
     while ((match = regex.exec(text)) !== null) {
       // 添加匹配前的文本
-      if (match.index > lastIndex) {
+      if (match.index >= lastIndex) {
         fragments.push(document.createTextNode(text.substring(lastIndex, match.index)));
       }
 

@@ -261,8 +261,8 @@ class Reader {
     this.view = document.createElement("foliate-view");
     $(".foliate-viewer").append(this.view);
     await this.view.open(bookObj.file_path);
-    // 启用翻页动画
-    this.view.renderer.setAttribute("animated", "true");
+    // 删除启用翻页动画的代码
+    // this.view.renderer.setAttribute("animated", "true");
     this.view.addEventListener("load", this.#onLoad.bind(this));
     this.view.addEventListener("relocate", this.#onRelocate.bind(this));
     this.view.addEventListener("click-view", this.#onClickView.bind(this));
@@ -462,19 +462,19 @@ export const open = async (bookObj, currentStyle) => {
     fontFamily: "Microsoft YaHei",
     btnBgColor: "#cccccc",
     maxColumnCount: 2,
-    pageAnimation: "translate",
+    pageAnimation: "none", // 修改为none，禁用翻页动画
   };
   const reader = new Reader();
   globalThis.reader = reader;
   await reader.open(bookObj);
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
 
-  // 根据设置启用或禁用翻页动画
-  const animated = style.pageAnimation !== "none" ? "true" : "false";
-  reader.view.renderer.setAttribute("animated", animated);
+  // 删除翻页动画控制代码
+  // const animated = style.pageAnimation !== "none" ? "true" : "false";
+  // reader.view.renderer.setAttribute("animated", animated);
 
-  // 设置动画类型属性
-  reader.view.renderer.setAttribute("data-animation", style.pageAnimation);
+  // 删除动画类型设置
+  // reader.view.renderer.setAttribute("data-animation", style.pageAnimation);
 };
 
 window.setStyle = (newStyle) => {

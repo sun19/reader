@@ -5,6 +5,7 @@ import { Overlayer } from "./ui/overlayer.js";
 import StyleUtil from "../utils/styleUtil.js";
 import Tts from "../utils/tts.js";
 import BookData from "../utils/book";
+import RegexSettings from '../utils/regexSettings.js';
 
 /**
  * fontsize 字体大小
@@ -318,6 +319,147 @@ class Reader {
     });
   }
 
+  /**
+   * 应用正则表达式高亮
+   */
+  applyRegexHighlight() {
+    const settings = RegexSettings.getSettings();
+    if (!settings.enabled || !settings.pattern) {
+      this.clearRegexHighlight();
+      return;
+    }
+
+    try {
+      const regex = new RegExp(settings.pattern, settings.flags);
+      this.highlightTextInDocument(regex, settings.highlightColor);
+    } catch (error) {
+      console.error('正则表达式错误:', error);
+    }
+  }
+
+  /**
+   * 清除正则表达式高亮
+   */
+  clearRegexHighlight() {
+    if (!this.view) return;
+
+    const doc = this.view.renderer?.getDocument?.();
+    if (!doc) return;
+
+    // 移除所有高亮元素
+    const highlights = doc.querySelectorAll('.regex-highlight');
+    highlights.forEach(highlight => {
+      const parent = highlight.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      }
+    });
+  }
+
+  /**
+   * 在文档中高亮匹配的文本
+   * @param {RegExp} regex 正则表达式
+   * @param {string} color 高亮颜色
+   */
+  highlightTextInDocument(regex, color) {
+    if (!this.view) return;
+
+    const contents = this.view.renderer?.getContents?.();
+    const doc = contents?.[0]?.doc;
+    console.log(doc);
+
+    if (!doc) return;
+
+    // 清除之前的高亮
+    this.clearRegexHighlight();
+
+    // 创建TreeWalker遍历文本节点
+    const walker = doc.createTreeWalker(
+      doc.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function (node) {
+          // 跳过脚本和样式元素中的文本
+          if (node.parentNode.tagName === 'SCRIPT' ||
+            node.parentNode.tagName === 'STYLE') {
+            return NodeFilter.FILTER_REJECT;
+          }
+          // 只处理包含文本的节点
+          return node.textContent.trim() ?
+            NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+
+    const textNodes = [];
+    let node;
+    while (node = walker.nextNode()) {
+      textNodes.push(node);
+    }
+
+    // 对每个文本节点进行高亮处理
+    textNodes.forEach(textNode => {
+      this.highlightTextNode(textNode, regex, color);
+    });
+  }
+
+  /**
+   * 高亮单个文本节点
+   * @param {Text} textNode 文本节点
+   * @param {RegExp} regex 正则表达式
+   * @param {string} color 高亮颜色
+   */
+  highlightTextNode(textNode, regex, color) {
+    const text = textNode.textContent;
+    let match;
+    let lastIndex = 0;
+    const fragments = [];
+
+    // 重置正则表达式的lastIndex
+    regex.lastIndex = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+      // 添加匹配前的文本
+      if (match.index > lastIndex) {
+        fragments.push(document.createTextNode(text.substring(lastIndex, match.index)));
+      }
+
+      // 创建高亮元素
+      const highlightSpan = document.createElement('span');
+      highlightSpan.className = 'regex-highlight';
+      highlightSpan.style.color = color;
+      highlightSpan.textContent = match[0];
+      fragments.push(highlightSpan);
+
+      lastIndex = match.index + match[0].length;
+
+      // 如果匹配长度为0，避免无限循环
+      if (match.index === lastIndex) {
+        lastIndex++;
+        regex.lastIndex = lastIndex;
+      }
+    }
+
+    // 添加剩余的文本
+    if (lastIndex < text.length) {
+      fragments.push(document.createTextNode(text.substring(lastIndex)));
+    }
+
+    // 如果有匹配到内容，替换原节点
+    if (fragments.length > 1) {
+      const parent = textNode.parentNode;
+      if (parent) {
+        fragments.forEach(fragment => {
+          parent.insertBefore(fragment, textNode);
+        });
+        parent.removeChild(textNode);
+      }
+    }
+  }
+  /**
+   * 渲染注释
+   */
   async renderAnnotation() {
     try {
       // 直接调用 notesRefresh 并等待结果
@@ -412,6 +554,8 @@ class Reader {
         chapter: this.currentChapter,
       });
     });
+    // 新增：应用正则表达式高亮
+    this.applyRegexHighlight();
   }
   //
   #onRelocate({ detail }) {
@@ -441,6 +585,9 @@ class Reader {
       Tts.stop();
       Tts.speak();
     }
+    setTimeout(() => {
+      this.applyRegexHighlight();
+    }, 100);
   }
 }
 
@@ -468,13 +615,6 @@ export const open = async (bookObj, currentStyle) => {
   globalThis.reader = reader;
   await reader.open(bookObj);
   reader.view.renderer.setAttribute("max-column-count", style.maxColumnCount);
-
-  // 删除翻页动画控制代码
-  // const animated = style.pageAnimation !== "none" ? "true" : "false";
-  // reader.view.renderer.setAttribute("animated", animated);
-
-  // 删除动画类型设置
-  // reader.view.renderer.setAttribute("data-animation", style.pageAnimation);
 };
 
 window.setStyle = (newStyle) => {

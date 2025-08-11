@@ -249,6 +249,43 @@
             </button>
           </div>
         </div>
+        <!-- 在设置面板的HTML结构中添加 -->
+        <div class="setting-item">
+          <label class="setting-label">正则表达式高亮</label>
+          <div class="setting-control">
+            <button
+              class="control-btn"
+              :class="{ active: regexSettings.enabled }"
+              @click="toggleRegexHighlight"
+            >
+              {{ regexSettings.enabled ? "已启用" : "已禁用" }}
+            </button>
+          </div>
+        </div>
+        <div class="setting-item" v-if="regexSettings.enabled">
+          <label class="setting-label">正则表达式</label>
+          <div class="setting-control">
+            <input
+              type="text"
+              v-model="regexSettings.pattern"
+              placeholder="输入正则表达式"
+              class="regex-input"
+              @input="updateRegexSettings"
+            />
+          </div>
+        </div>
+
+        <div class="setting-item" v-if="regexSettings.enabled">
+          <label class="setting-label">高亮颜色</label>
+          <div class="setting-control">
+            <input
+              type="color"
+              v-model="regexSettings.highlightColor"
+              class="color-input"
+              @input="updateRegexSettings"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -297,6 +334,8 @@ const importConfigText = ref("");
 // 在onMounted中加载在线TTS配置
 onMounted(() => {
   onlineTtsConfigs.value = TtsData.getOnlineTtsConfigs();
+  // 加载正则表达式设置
+  regexSettings.value = RegexSettings.getSettings();
 });
 
 // 添加TTS引擎切换方法
@@ -477,6 +516,25 @@ function setPageAnimation(animation) {
   currentTheme.value.pageAnimation = animation;
   emit("update-theme", currentTheme.value);
 }
+
+import RegexSettings from "../utils/regexSettings.js";
+
+// 添加正则表达式设置状态
+const regexSettings = ref(RegexSettings.getSettings());
+
+// 添加正则表达式相关方法
+const toggleRegexHighlight = () => {
+  regexSettings.value.enabled = !regexSettings.value.enabled;
+  updateRegexSettings();
+};
+
+const updateRegexSettings = () => {
+  RegexSettings.updateSettings(regexSettings.value);
+  // 通知阅读器重新应用高亮
+  if (globalThis.reader) {
+    globalThis.reader.applyRegexHighlight();
+  }
+};
 </script>
 
 <style scoped>
@@ -789,5 +847,25 @@ function setPageAnimation(animation) {
 .cancel-btn:hover,
 .confirm-btn:hover {
   opacity: 0.8;
+}
+
+.regex-input {
+  width: 100%;
+  height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--fc);
+  border-radius: 4px;
+  background-color: var(--bg);
+  color: var(--fc);
+  font-size: 14px;
+}
+
+.color-input {
+  width: 50px;
+  height: 32px;
+  border: 1px solid var(--fc);
+  border-radius: 4px;
+  background-color: var(--bg);
+  cursor: pointer;
 }
 </style>

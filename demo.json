@@ -1,0 +1,5 @@
+{
+  "id": 1652142382227,
+  "name": "SO在线TTS",
+  "url": "https://so.n.cn/api/tts/v1?roleid=1&appsource=so,{'method':'POST','body':'text={{java.encodeURI(java.encodeURI(speakText))}}&audio_type=mp3&format=stream'}"
+}

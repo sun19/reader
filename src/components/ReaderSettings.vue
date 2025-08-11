@@ -15,22 +15,85 @@
       </div>
 
       <div class="settings-content">
-        <!-- 语速 -->
+        <!-- 在线TTS配置 -->
         <div class="setting-item">
+          <label>语音引擎</label>
+          <div class="tts-engine-options">
+            <button
+              @click="setTtsEngine(false)"
+              class="tts-engine-btn"
+              :style="{
+                borderColor: !currentData.useOnlineTts
+                  ? currentTheme.btnBgColor
+                  : 'transparent',
+                color: !currentData.useOnlineTts ? currentTheme.fontColor : '',
+              }"
+            >
+              本地TTS
+            </button>
+            <button
+              @click="setTtsEngine(true)"
+              class="tts-engine-btn"
+              :style="{
+                borderColor: currentData.useOnlineTts
+                  ? currentTheme.btnBgColor
+                  : 'transparent',
+                color: currentData.useOnlineTts ? currentTheme.fontColor : '',
+              }"
+            >
+              在线TTS
+            </button>
+          </div>
+        </div>
+
+        <!-- 在线TTS配置选择 -->
+        <div v-if="currentData.useOnlineTts" class="setting-item">
+          <label>在线TTS服务</label>
+          <div class="online-tts-config">
+            <select
+              :value="currentData.onlineTtsConfig?.id || ''"
+              @change="selectOnlineTtsConfig($event.target.value)"
+              class="font-select"
+            >
+              <option value="">请选择在线TTS服务</option>
+              <option
+                v-for="config in onlineTtsConfigs"
+                :key="config.id"
+                :value="config.id"
+              >
+                {{ config.name }}
+              </option>
+            </select>
+            <button @click="showImportConfig" class="import-btn">
+              导入配置
+            </button>
+            <button
+              v-if="currentData.onlineTtsConfig"
+              @click="removeCurrentConfig"
+              class="remove-btn"
+            >
+              删除配置
+            </button>
+          </div>
+        </div>
+
+        <!-- 在线TTS语速 -->
+        <div v-if="currentData.useOnlineTts" class="setting-item">
           <label>语速</label>
           <input
             type="range"
-            :value="currentData.ttsRate"
-            min="0.5"
-            max="3"
-            step="0.1"
+            :value="currentData.speakSpeed"
+            min="0"
+            max="10"
+            step="1"
             class="range-input"
-            @input="handleTtsRateChange($event.target.value)"
+            @input="handleOnlineTtsSpeedChange($event.target.value)"
           />
-          <span class="range-value">{{ currentData.ttsRate }}</span>
+          <span class="range-value">{{ currentData.speakSpeed }}</span>
         </div>
-        <!-- 语音 -->
-        <div class="setting-item">
+
+        <!-- 本地TTS语音选择 -->
+        <div v-if="!currentData.useOnlineTts" class="setting-item">
           <label>语音</label>
           <select
             :value="currentData.ttsVoiceIndex"
@@ -45,6 +108,21 @@
               {{ voice.name }}
             </option>
           </select>
+        </div>
+
+        <!-- 本地TTS语速 -->
+        <div v-if="!currentData.useOnlineTts" class="setting-item">
+          <label>语速</label>
+          <input
+            type="range"
+            :value="currentData.ttsRate"
+            min="0.5"
+            max="3"
+            step="0.1"
+            class="range-input"
+            @input="handleTtsRateChange($event.target.value)"
+          />
+          <span class="range-value">{{ currentData.ttsRate }}</span>
         </div>
         <!-- 分栏选择 -->
         <div class="setting-item">
@@ -173,15 +251,110 @@
         </div>
       </div>
     </div>
+
+    <!-- 导入配置对话框 -->
+    <div
+      v-if="showImportDialog"
+      class="import-dialog-overlay"
+      @click="showImportDialog = false"
+    >
+      <div class="import-dialog" @click.stop>
+        <div class="import-dialog-header">
+          <h3>导入在线TTS配置</h3>
+          <button @click="showImportDialog = false" class="close-btn">×</button>
+        </div>
+        <div class="import-dialog-content">
+          <textarea
+            v-model="importConfigText"
+            placeholder="请粘贴JSON配置..."
+            class="config-textarea"
+          ></textarea>
+          <div class="import-dialog-actions">
+            <button @click="showImportDialog = false" class="cancel-btn">
+              取消
+            </button>
+            <button @click="importConfig" class="confirm-btn">导入</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+// 在script setup部分添加
+import { computed, ref, onMounted } from "vue";
 import StyleUtil from "../utils/styleUtil";
 import Theme from "../utils/theme";
 import Tts from "../utils/tts.js";
 import TtsData from "../utils/ttsData.js";
+
+// 添加在线TTS配置
+const onlineTtsConfigs = ref([]);
+const showImportDialog = ref(false);
+const importConfigText = ref("");
+
+// 在onMounted中加载在线TTS配置
+onMounted(() => {
+  onlineTtsConfigs.value = TtsData.getOnlineTtsConfigs();
+});
+
+// 添加TTS引擎切换方法
+function setTtsEngine(useOnline) {
+  currentData.value.useOnlineTts = useOnline;
+  if (!useOnline) {
+    currentData.value.onlineTtsConfig = null;
+  }
+  TtsData.setTtsData(currentData.value);
+}
+
+// 添加在线TTS配置选择方法
+function selectOnlineTtsConfig(configId) {
+  const config = onlineTtsConfigs.value.find((c) => c.id == configId);
+  currentData.value.onlineTtsConfig = config;
+  TtsData.setTtsData(currentData.value);
+}
+
+// 添加在线TTS语速控制方法
+function handleOnlineTtsSpeedChange(value) {
+  currentData.value.speakSpeed = parseInt(value);
+  TtsData.setTtsData(currentData.value);
+}
+
+// 显示导入配置对话框
+function showImportConfig() {
+  importConfigText.value = "";
+  showImportDialog.value = true;
+}
+
+// 导入配置
+function importConfig() {
+  try {
+    const config = JSON.parse(importConfigText.value);
+
+    if (config.id && config.name && config.url) {
+      TtsData.importOnlineTtsConfig(config);
+      onlineTtsConfigs.value = TtsData.getOnlineTtsConfigs();
+      showImportDialog.value = false;
+    } else {
+      alert("配置格式不正确，请确保包含id、name和url字段");
+    }
+  } catch (error) {
+    alert("配置格式错误，请检查JSON格式");
+  }
+}
+
+// 删除当前配置
+function removeCurrentConfig() {
+  if (currentData.value.onlineTtsConfig) {
+    if (confirm("确定要删除当前配置吗？")) {
+      TtsData.removeOnlineTtsConfig(currentData.value.onlineTtsConfig.id);
+      onlineTtsConfigs.value = TtsData.getOnlineTtsConfigs();
+      currentData.value.onlineTtsConfig = null;
+      TtsData.setTtsData(currentData.value);
+    }
+  }
+}
 
 // 组件属性
 const props = defineProps({
@@ -324,7 +497,7 @@ function setPageAnimation(animation) {
 .settings-panel {
   background-color: var(--bg);
   border-radius: 12px;
-  width: 600px;
+  width: 700px;
   height: 80vh;
   max-width: 90vw;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -485,5 +658,136 @@ function setPageAnimation(animation) {
 
 .animation-btn:hover {
   transform: translateY(-2px);
+}
+
+/* 在线TTS相关样式 */
+.tts-engine-options {
+  display: flex;
+  gap: 10px;
+}
+
+.tts-engine-btn {
+  padding: 8px 16px;
+  border: 2px solid var(--fc);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  color: var(--fc);
+}
+
+.tts-engine-btn:hover {
+  transform: translateY(-1px);
+}
+
+.online-tts-config {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.import-btn,
+.remove-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--fc);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  background-color: var(--bbc);
+  color: var(--fc);
+  width: 100px;
+}
+
+.import-btn:hover,
+.remove-btn:hover {
+  opacity: 0.8;
+}
+
+.remove-btn {
+  background-color: #ff4444;
+  border-color: #ff4444;
+}
+
+.import-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.import-dialog {
+  background-color: var(--bg);
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90vw;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.import-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--fc);
+}
+
+.import-dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.import-dialog-content {
+  padding: 20px;
+}
+
+.config-textarea {
+  width: 100%;
+  height: 200px;
+  padding: 12px;
+  border: 1px solid var(--fc);
+  border-radius: 6px;
+  background-color: var(--bg);
+  color: var(--fc);
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.import-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.cancel-btn,
+.confirm-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--fc);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-btn {
+  background-color: transparent;
+  color: var(--fc);
+}
+
+.confirm-btn {
+  background-color: var(--bbc);
+  color: var(--fc);
+}
+
+.cancel-btn:hover,
+.confirm-btn:hover {
+  opacity: 0.8;
 }
 </style>

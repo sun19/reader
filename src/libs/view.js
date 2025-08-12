@@ -558,7 +558,12 @@ export class View extends HTMLElement {
   getCFI(index, range) {
     const baseCFI = this.book.sections[index].cfi ?? CFI.fake.fromIndex(index);
     if (!range) return baseCFI;
-    return CFI.joinIndir(baseCFI, CFI.fromRange(range));
+    try {
+      return CFI.joinIndir(baseCFI, CFI.fromRange(range));
+    } catch (e) {
+      console.warn('Failed to generate CFI:', e);
+      return baseCFI;
+    }
   }
   resolveCFI(cfi) {
     if (this.book.resolveCFI) return this.book.resolveCFI(cfi);

@@ -429,7 +429,6 @@ class Reader {
       highlightSpan.style.color = color;
       highlightSpan.textContent = match[0];
       fragments.push(highlightSpan);
-
       lastIndex = match.index + match[0].length;
 
       // 如果匹配长度为0，避免无限循环
@@ -438,7 +437,6 @@ class Reader {
         regex.lastIndex = lastIndex;
       }
     }
-
     // 添加剩余的文本
     if (lastIndex < text.length) {
       fragments.push(document.createTextNode(text.substring(lastIndex)));
@@ -583,9 +581,9 @@ class Reader {
       Tts.stop();
       Tts.speak();
     }
-    setTimeout(() => {
-      this.applyRegexHighlight();
-    }, 100);
+    // setTimeout(() => {
+    //   this.applyRegexHighlight();
+    // }, 100);
   }
 }
 

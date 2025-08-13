@@ -249,6 +249,27 @@
             </button>
           </div>
         </div>
+        <!-- 文字方向 -->
+        <div class="setting-item">
+          <label>文字方向</label>
+          <div class="writing-mode-options">
+            <button
+              v-for="mode in writingModes"
+              @click="setWritingMode(mode.value)"
+              class="writing-mode-btn"
+              :style="{
+                borderColor:
+                  currentTheme.writingMode == mode.value
+                    ? theme.btnBgColor
+                    : 'transparent',
+                color:
+                  currentTheme.writingMode == mode.value ? theme.fontColor : '',
+              }"
+            >
+              {{ mode.label }}
+            </button>
+          </div>
+        </div>
         <!-- 在设置面板的HTML结构中添加 -->
         <div class="setting-item">
           <label class="setting-label">正则表达式高亮</label>
@@ -274,7 +295,6 @@
             />
           </div>
         </div>
-
         <div class="setting-item" v-if="regexSettings.enabled">
           <label class="setting-label">高亮颜色</label>
           <div class="setting-control">
@@ -330,6 +350,18 @@ import TtsData from "../utils/ttsData.js";
 const onlineTtsConfigs = ref([]);
 const showImportDialog = ref(false);
 const importConfigText = ref("");
+
+// 新增文字方向选项
+const writingModes = ref([
+  {
+    label: "水平",
+    value: "horizontal-tb",
+  },
+  {
+    label: "垂直",
+    value: "vertical-rl",
+  },
+]);
 
 // 在onMounted中加载在线TTS配置
 onMounted(() => {
@@ -516,7 +548,13 @@ function setPageAnimation(animation) {
   currentTheme.value.pageAnimation = animation;
   emit("update-theme", currentTheme.value);
 }
-
+/**
+ * 文字方向设置
+ */
+function setWritingMode(mode) {
+  currentTheme.value.writingMode = mode;
+  emit("update-theme", currentTheme.value);
+}
 import RegexSettings from "../utils/regexSettings.js";
 
 // 添加正则表达式设置状态
@@ -867,5 +905,32 @@ const updateRegexSettings = () => {
   border-radius: 4px;
   background-color: var(--bg);
   cursor: pointer;
+}
+.animation-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* 文字方向相关样式 */
+.writing-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.writing-mode-btn {
+  width: 80px;
+  padding: 6px;
+  border: 2px solid var(--fc);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  position: relative;
+  color: var(--fc);
+}
+
+.writing-mode-btn:hover {
+  transform: translateY(-2px);
 }
 </style>

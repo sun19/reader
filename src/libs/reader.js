@@ -575,15 +575,12 @@ class Reader {
       reading_percentage: percent,
       current_chapter: this.currentChapter,
     });
-    this.view.renderer.updatePageNumber(style.fontColor);
+    this.view.renderer.updatePageNumber(style.fontColor, this.currentChapter);
     //页面更新重新读取
     if (Tts.synth?.speaking) {
       Tts.stop();
       Tts.speak();
     }
-    // setTimeout(() => {
-    //   this.applyRegexHighlight();
-    // }, 100);
   }
 }
 

@@ -553,6 +553,7 @@ export class Paginator extends HTMLElement {
         #header {
             grid-column: 3 / 4;
             grid-row: 1;
+            display: none !important;
         }
         #footer {
             grid-column: 3 / 4;
@@ -560,8 +561,9 @@ export class Paginator extends HTMLElement {
             align-self: end;
         }
         #header, #footer {
-            display: grid;
+            display: flex;
             height: var(--_margin);
+            justify-content: space-between;
         }
         :is(#header, #footer) > * {
             display: flex;
@@ -674,9 +676,9 @@ export class Paginator extends HTMLElement {
     };
     this.#mediaQuery.addEventListener("change", this.#mediaQueryListener);
   }
-  updatePageNumber(fc) {
+  updatePageNumber(fc, currentChapter) {
     this.#footer.innerHTML = `<span>第 ${this.page} 页 / 总 ${this.pages - 2
-      } 页</span>`;
+      } 页</span><span>${currentChapter}</span>`;
     this.#footer.style =
       "color:" +
       fc +

@@ -1,5 +1,5 @@
 // TXT文本文件处理器
-// 增强版：支持智能章节识别、目录生成和编码检测
+import * as jschardet from 'jschardet';
 
 export class TXTBook {
   constructor(file) {
@@ -52,8 +52,49 @@ export class TXTBook {
 
       reader.onload = (e) => {
         try {
-          // 直接读取为文本，让浏览器处理编码
-          const text = e.target.result;
+          // 读取为ArrayBuffer以便检测编码
+          const arrayBuffer = e.target.result;
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          // 使用jschardet检测编码
+          // 针对jschardet 3.1.4版本，将Uint8Array转换为Buffer或字符串
+          let detectionResult;
+          try {
+            // 尝试直接检测Uint8Array
+            detectionResult = jschardet.detect(uint8Array);
+          } catch (error) {
+            console.warn('直接检测Uint8Array失败，尝试转换为字符串:', error);
+            // 转换为字符串（使用Latin-1编码保留原始字节）
+            // 使用TextDecoder代替apply避免栈溢出
+            const binaryString = new TextDecoder('latin1').decode(uint8Array);
+            detectionResult = jschardet.detect(binaryString);
+          }
+
+          console.log('检测到的编码:', detectionResult);
+          const encoding = detectionResult.encoding?.toLowerCase() || 'utf-8';
+
+          // 对于GB2312和GBK编码，使用gbk解码器
+          const decoderEncoding = encoding.includes('gb2312') || encoding.includes('gbk') ? 'gbk' : encoding;
+
+          // 使用检测到的编码解码
+          let text;
+          try {
+            text = new TextDecoder(decoderEncoding).decode(uint8Array);
+          } catch (error) {
+            console.error(`使用${decoderEncoding}解码失败，尝试UTF-8:`, error);
+            text = new TextDecoder('utf-8', { fatal: false }).decode(uint8Array);
+          }
+
+          // 检测是否有乱码迹象
+          if (this.hasGarbledCharacters(text)) {
+            console.warn('检测到乱码，尝试使用gbk重新解码');
+            try {
+              text = new TextDecoder('gbk').decode(uint8Array);
+            } catch (e) {
+              console.error('GBK解码失败:', e);
+            }
+          }
+
           resolve(text);
         } catch (error) {
           console.error('文件读取错误:', error);
@@ -65,11 +106,19 @@ export class TXTBook {
         reject(new Error('文件读取失败'));
       };
 
-      // 直接以文本方式读取，浏览器会自动处理编码
-      reader.readAsText(file, 'UTF-8');
+      // 使用ArrayBuffer方式读取文件
+      reader.readAsArrayBuffer(file);
     });
   }
-
+  // 检测文本是否存在乱码迹象
+  hasGarbledCharacters(text) {
+    const garbledPattern = /[\x00-\x1F\x7F-\x9F\uFFFD]+/g;
+    const matches = text.match(garbledPattern);
+    if (!matches) return false;
+    const garbledLength = matches.reduce((sum, match) => sum + match.length, 0);
+    // 如果乱码字符占比超过1%，认为有乱码
+    return garbledLength / text.length > 0.01;
+  }
   // 检测文本语言
   detectLanguage(text) {
     if (!text) return 'zh';

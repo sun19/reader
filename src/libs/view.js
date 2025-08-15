@@ -34,6 +34,10 @@ const isFBZ = ({ name, type }) =>
   name.endsWith(".fb2.zip") ||
   name.endsWith(".fbz");
 
+// 添加txt检测函数
+const isTXT = ({ name, type }) =>
+  type === "text/plain" || name.endsWith(".txt");
+
 const makeZipLoader = async (file) => {
   const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } =
     await import("./vendor/zip.js");
@@ -174,8 +178,13 @@ export const makeBook = async (file) => {
     } else if (isFB2(file)) {
       const { makeFB2 } = await import("./tools/fb2.js");
       book = await makeFB2(file);
+    } else if (isTXT(file)) {
+      // 添加txt格式支持
+      const { makeTXTBook } = await import("./tools/txt.js");
+      book = await makeTXTBook(file);
     }
   }
+  console.log(book)
   const blobCover = await book.getCover();
   if (blobCover) {
     const strCover = await img2str(blobCover);

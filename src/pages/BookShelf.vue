@@ -7,8 +7,7 @@
       '--fc': theme.fontColor,
     }"
   >
-    <!-- 自定义顶部任务栏 -->
-    <div class="custom-titlebar">
+    <CustomTitlebar>
       <div class="titlebar-content">
         <!-- 搜索框 -->
         <div class="search-box">
@@ -32,28 +31,7 @@
           </button>
         </div>
       </div>
-
-      <!-- 窗口控制按钮 -->
-      <div class="window-controls">
-        <button
-          @click="minimizeWindow"
-          class="control-btn minimize-btn"
-          title="最小化"
-        >
-          <span class="heroicons--minus-16-solid"></span>
-        </button>
-        <button
-          @click="toggleMaximize"
-          class="control-btn maximize-btn"
-          title="最大化/还原"
-        >
-          <span class="heroicons--stop"></span>
-        </button>
-        <button @click="closeWindow" class="control-btn close-btn" title="关闭">
-          <span class="heroicons--x-mark-16-solid"></span>
-        </button>
-      </div>
-    </div>
+    </CustomTitlebar>
 
     <!-- 书籍网格容器 -->
     <div class="books-container">
@@ -88,21 +66,18 @@
 import { ref, computed, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import BookCard from "../components/BookCard.vue";
 import FormatConverter from "../components/FormatConverter.vue";
 import { useRouter } from "vue-router";
 import StyleUtil from "../utils/styleUtil";
 import BookData from "../utils/book";
+import CustomTitlebar from "../components/CustomTitlebar.vue";
 
 // 响应式数据
 const books = ref([]);
 const searchQuery = ref("");
 const theme = ref(StyleUtil.getStyle());
 const isFormatConverterVisible = ref(false);
-
-// 获取当前窗口实例
-const appWindow = getCurrentWindow();
 
 // 计算属性 - 过滤书籍
 const filteredBooks = computed(() => {
@@ -193,44 +168,6 @@ function openBook(book) {
 onMounted(() => {
   loadLibrary();
 });
-
-/**
- * 最小化窗口
- */
-async function minimizeWindow() {
-  try {
-    await appWindow.minimize();
-  } catch (error) {
-    console.error("最小化窗口失败:", error);
-  }
-}
-
-/**
- * 最大化/还原窗口
- */
-async function toggleMaximize() {
-  try {
-    const isMaximized = await appWindow.isMaximized();
-    if (isMaximized) {
-      await appWindow.unmaximize();
-    } else {
-      await appWindow.maximize();
-    }
-  } catch (error) {
-    console.error("切换窗口状态失败:", error);
-  }
-}
-
-/**
- * 关闭窗口
- */
-async function closeWindow() {
-  try {
-    await appWindow.close();
-  } catch (error) {
-    console.error("关闭窗口失败:", error);
-  }
-}
 
 /**
  * 显示格式转换弹窗

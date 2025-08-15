@@ -7,8 +7,7 @@
       '--fc': theme.fontColor,
     }"
   >
-    <!-- 自定义顶部任务栏 -->
-    <div class="custom-titlebar">
+    <CustomTitlebar>
       <!-- 操作按钮组 -->
       <div class="action-buttons">
         <button @click="goBack" class="control-btn">
@@ -42,27 +41,7 @@
       <h1 class="book-title">
         {{ currentBook?.title || "未知书籍" }}
       </h1>
-      <!-- 窗口控制按钮 -->
-      <div class="window-controls">
-        <button
-          @click="minimizeWindow"
-          class="control-btn minimize-btn"
-          title="最小化"
-        >
-          <span class="heroicons--minus-16-solid"></span>
-        </button>
-        <button
-          @click="toggleMaximize"
-          class="control-btn maximize-btn"
-          title="最大化/还原"
-        >
-          <span class="heroicons--stop"></span>
-        </button>
-        <button @click="closeWindow" class="control-btn" title="关闭">
-          <span class="heroicons--x-mark-16-solid"></span>
-        </button>
-      </div>
-    </div>
+    </CustomTitlebar>
 
     <!-- 阅读内容区域 -->
     <div class="reader-content foliate-viewer" ref="contentArea"></div>
@@ -85,15 +64,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import ReaderSettings from "../components/ReaderSettings.vue";
 import TableOfContents from "../components/TableOfContents.vue";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import StyleUtil from "../utils/styleUtil.js";
 import Tts from "../utils/tts.js";
 import BookData from "../utils/book";
 import { open } from "../libs/reader.js";
+import CustomTitlebar from "../components/CustomTitlebar.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -105,8 +84,6 @@ const contentArea = ref(null);
 const theme = ref(StyleUtil.getStyle());
 const PLAY_STATE = ["SPEAKING", "PAUSED", "STOPPED"];
 const playState = ref(PLAY_STATE[2]);
-// 获取当前窗口实例
-const appWindow = getCurrentWindow();
 
 // 朗读相关
 function toggleReading() {
@@ -176,44 +153,6 @@ function goBack() {
   router.push("/");
 }
 
-/**
- * 最小化窗口
- */
-async function minimizeWindow() {
-  try {
-    await appWindow.minimize();
-  } catch (error) {
-    console.error("最小化窗口失败:", error);
-  }
-}
-
-/**
- * 最大化/还原窗口
- */
-async function toggleMaximize() {
-  try {
-    const isMaximized = await appWindow.isMaximized();
-    if (isMaximized) {
-      await appWindow.unmaximize();
-    } else {
-      await appWindow.maximize();
-    }
-  } catch (error) {
-    console.error("切换窗口状态失败:", error);
-  }
-}
-
-/**
- * 关闭窗口
- */
-async function closeWindow() {
-  try {
-    await appWindow.close();
-  } catch (error) {
-    console.error("关闭窗口失败:", error);
-  }
-}
-
 // 生命周期
 onMounted(async () => {
   await loadBook();
@@ -279,97 +218,5 @@ onUnmounted(() => {});
 /* 触摸翻页时的平滑效果 */
 .reader-content::v-deep(.foliate-view) {
   transition: transform 0.3s ease-out;
-}
-/* 仿真翻页动画效果 */
-.reader-content::v-deep(foliate-paginator[data-animation="realistic"]) {
-  perspective: 2000px;
-  transform-style: preserve-3d;
-}
-
-.reader-content::v-deep(foliate-paginator[data-animation="realistic"]) .page {
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
-  .page.turning-prev {
-  transform-origin: right center;
-  animation: turnPagePrev 0.8s ease-in-out forwards;
-}
-
-.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
-  .page.turning-next {
-  transform-origin: left center;
-  animation: turnPageNext 0.8s ease-in-out forwards;
-}
-
-@keyframes turnPagePrev {
-  0% {
-    transform: rotateY(0deg) rotateZ(0deg);
-    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  }
-  25% {
-    transform: rotateY(-45deg) rotateZ(5deg);
-    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    transform: rotateY(-90deg) rotateZ(10deg);
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
-  }
-  75% {
-    transform: rotateY(-135deg) rotateZ(5deg);
-    box-shadow: -15px 0 40px rgba(0, 0, 0, 0.3);
-  }
-  100% {
-    transform: rotateY(-180deg) rotateZ(0deg);
-    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  }
-}
-
-@keyframes turnPageNext {
-  0% {
-    transform: rotateY(0deg) rotateZ(0deg);
-    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  }
-  25% {
-    transform: rotateY(45deg) rotateZ(-5deg);
-    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    transform: rotateY(90deg) rotateZ(-10deg);
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
-  }
-  75% {
-    transform: rotateY(135deg) rotateZ(-5deg);
-    box-shadow: 15px 0 40px rgba(0, 0, 0, 0.3);
-  }
-  100% {
-    transform: rotateY(180deg) rotateZ(0deg);
-    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  }
-}
-
-/* 添加页面阴影效果 */
-.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
-  .page-shadow {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.1) 50%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.reader-content::v-deep(foliate-paginator[data-animation="realistic"])
-  .page-shadow.active {
-  opacity: 1;
 }
 </style>

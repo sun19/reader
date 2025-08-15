@@ -56,43 +56,25 @@ export class TXTBook {
           const arrayBuffer = e.target.result;
           const uint8Array = new Uint8Array(arrayBuffer);
 
-          // 使用jschardet检测编码
-          // 针对jschardet 3.1.4版本，将Uint8Array转换为Buffer或字符串
           let detectionResult;
           try {
             // 尝试直接检测Uint8Array
             detectionResult = jschardet.detect(uint8Array);
           } catch (error) {
             console.warn('直接检测Uint8Array失败，尝试转换为字符串:', error);
-            // 转换为字符串（使用Latin-1编码保留原始字节）
-            // 使用TextDecoder代替apply避免栈溢出
             const binaryString = new TextDecoder('latin1').decode(uint8Array);
             detectionResult = jschardet.detect(binaryString);
           }
 
-          console.log('检测到的编码:', detectionResult);
           const encoding = detectionResult.encoding?.toLowerCase() || 'utf-8';
-
-          // 对于GB2312和GBK编码，使用gbk解码器
           const decoderEncoding = encoding.includes('gb2312') || encoding.includes('gbk') ? 'gbk' : encoding;
-
-          // 使用检测到的编码解码
+          console.log('检测到的编码:', decoderEncoding);
           let text;
           try {
             text = new TextDecoder(decoderEncoding).decode(uint8Array);
           } catch (error) {
             console.error(`使用${decoderEncoding}解码失败，尝试UTF-8:`, error);
             text = new TextDecoder('utf-8', { fatal: false }).decode(uint8Array);
-          }
-
-          // 检测是否有乱码迹象
-          if (this.hasGarbledCharacters(text)) {
-            console.warn('检测到乱码，尝试使用gbk重新解码');
-            try {
-              text = new TextDecoder('gbk').decode(uint8Array);
-            } catch (e) {
-              console.error('GBK解码失败:', e);
-            }
           }
 
           resolve(text);
@@ -145,7 +127,6 @@ export class TXTBook {
     const chapterPatterns = [
       // 中文章节格式
       /^第[\d零一二三四五六七八九十百千万]+[章回节卷]/,
-      /^[\d零一二三四五六七八九十百千万]+[章回节卷]/,
       /^第[\d零一二三四五六七八九十百千万]+章/,
       /^第[\d零一二三四五六七八九十百千万]+回/,
       /^第[\d零一二三四五六七八九十百千万]+节/,

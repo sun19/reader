@@ -69,7 +69,7 @@ const tokenizer = str => {
             continue
         }
         if (char === '/' || char === ':' || char === '~' || char === '@'
-        || char === '[' || char === '!' || char === ',') state = char
+            || char === '[' || char === '!' || char === ',') state = char
     }
     return tokens
 }
@@ -232,6 +232,11 @@ const indexChildNodes = (node, filter) => {
 }
 
 const partsToNode = (node, parts, filter) => {
+    if (!parts || parts.length === 0) {
+        console.warn('partsToNode called with empty parts array');
+        return { node, offset: 0 };
+    }
+
     const { id } = parts[parts.length - 1]
     if (id) {
         const el = node.ownerDocument.getElementById(id)

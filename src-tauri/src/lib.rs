@@ -70,55 +70,6 @@ fn extract_epub_cover(doc: &mut epub::doc::EpubDoc<std::io::BufReader<std::fs::F
     None
 }
 
-/**
- * 通过网络API查询书籍信息
- */
-async fn search_book_online(title: &str) -> Result<BookSearchResult, String> {
-    let client = reqwest::Client::new();
-    
-    // 使用豆瓣API查询书籍信息（示例）
-    let search_url = format!(
-        "https://api.douban.com/v2/book/search?q={}&count=1",
-        urlencoding::encode(title)
-    );
-    
-    let response = client
-        .get(&search_url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-        .send()
-        .await
-        .map_err(|e| format!("网络请求失败: {}", e))?;
-    
-    let json: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| format!("解析响应失败: {}", e))?;
-    
-    if let Some(books) = json["books"].as_array() {
-        if let Some(book) = books.first() {
-            let title = book["title"].as_str().unwrap_or("未知标题").to_string();
-            let author = book["author"]
-                .as_array()
-                .and_then(|authors| authors.first())
-                .and_then(|author| author.as_str())
-                .unwrap_or("未知作者")
-                .to_string();
-            let cover_url = book["image"].as_str().map(|s| s.to_string());
-            let description = book["summary"].as_str().map(|s| s.to_string());
-            
-            return Ok(BookSearchResult {
-                title,
-                author,
-                cover_url,
-                description,
-            });
-        }
-    }
-    
-    Err("未找到相关书籍信息".to_string())
-}
-
-
 
 /**
  * 添加书籍到书库（增强版）
@@ -135,6 +86,7 @@ async fn get_book_info(book_data: BookData) -> Result<Book, String> {
     let file_type = match file_path.extension().and_then(|s| s.to_str()) {
         Some("txt") => "txt".to_string(),
         Some("epub") => "epub".to_string(),
+        Some("mobi") => "mobi".to_string(),
         _ => return Err("不支持的文件格式".to_string()),
     };
     
@@ -157,23 +109,6 @@ async fn get_book_info(book_data: BookData) -> Result<Book, String> {
             }
             Err(e) => {
                 println!("提取EPUB元数据失败: {}", e);
-            }
-        }
-    }
-    
-    // 如果仍然缺少作者或封面信息，尝试在线查询
-    if (author == "未知作者" || author.is_empty()) || cover_data.is_none() {
-        match search_book_online(&title).await {
-            Ok(search_result) => {
-                if author == "未知作者" || author.is_empty() {
-                    author = search_result.author;
-                }
-                if cover_data.is_none() {
-                    cover_url = search_result.cover_url;
-                }
-            }
-            Err(e) => {
-                println!("在线查询书籍信息失败: {}", e);
             }
         }
     }

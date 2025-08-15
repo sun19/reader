@@ -71,7 +71,7 @@
       <!-- 空状态 -->
       <div v-else class="empty-state">
         <div class="empty-icon">📚</div>
-        <p class="empty-text">将 (epub,mobi) 文件</p>
+        <p class="empty-text">将 (epub,mobi,txt) 文件</p>
         <p class="empty-text">拖到此处，或者添加本地书籍</p>
       </div>
     </div>
@@ -137,7 +137,7 @@ async function addBookDirectly() {
       filters: [
         {
           name: "电子书",
-          extensions: ["epub", "mobi"],
+          extensions: ["epub", "mobi", "txt"],
         },
       ],
     });

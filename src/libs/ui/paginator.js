@@ -386,7 +386,10 @@ class View {
     }
   }
   expand() {
-    const { documentElement } = this.document;
+    const doc = this.document;
+    if (!doc) return; // 添加此检查
+
+    const { documentElement } = doc;
     if (this.#column) {
       const side = this.#vertical ? "height" : "width";
       const otherSide = this.#vertical ? "width" : "height";
@@ -1074,9 +1077,20 @@ export class Paginator extends HTMLElement {
     else if (this.pages > 0) {
       const { page, pages } = this;
       this.#header.style.visibility = page > 1 ? "visible" : "hidden";
-      detail.fraction = (page - 1) / (pages - 2);
-      detail.size = 1 / (pages - 2);
+      if (pages > 2) {
+        detail.fraction = (page - 1) / (pages - 2);
+        detail.size = 1 / (pages - 2);
+      } else {
+        detail.fraction = 0;
+        detail.size = 1;
+      }
+    } else {
+      // 当pages <= 0时，设置fraction为0
+      detail.fraction = 0;
+      detail.size = 1;
     }
+
+
     this.dispatchEvent(new CustomEvent("relocate", { detail }));
   }
   async #display(promise) {

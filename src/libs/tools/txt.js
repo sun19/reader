@@ -68,7 +68,6 @@ export class TXTBook {
 
           const encoding = detectionResult.encoding?.toLowerCase() || 'utf-8';
           const decoderEncoding = encoding.includes('gb2312') || encoding.includes('gbk') ? 'gbk' : encoding;
-          console.log('检测到的编码:', decoderEncoding);
           let text;
           try {
             text = new TextDecoder(decoderEncoding).decode(uint8Array);
@@ -210,6 +209,8 @@ export class TXTBook {
       title: chapter.title,
       linear: "yes",
       cfi: `/6/${index + 2}[${chapter.id}]!`,
+      // 添加size属性
+      size: chapter.content?.length || 0,
       load: async () => {
         const section = await this.getSection(chapter.href);
         if (section && section.render) {
@@ -222,6 +223,15 @@ export class TXTBook {
           return url;
         }
         return '';
+      },
+      // 添加unload方法
+      unload: async () => {
+        const section = await this.getSection(chapter.href);
+        if (section && section.blobUrl) {
+          // 释放Blob URL
+          URL.revokeObjectURL(section.blobUrl);
+          section.blobUrl = null;
+        }
       }
     }));
   }

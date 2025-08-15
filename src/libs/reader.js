@@ -257,7 +257,6 @@ class Reader {
   async open(bookObj) {
     this.bookId = bookObj.id;
     this.bookObj = bookObj;
-    console.log(this.bookObj);
 
     this.view = document.createElement("foliate-view");
     $(".foliate-viewer").append(this.view);
@@ -312,7 +311,6 @@ class Reader {
       else if (type === "squiggly") draw(Overlayer.squiggly, { color });
     });
     view.addEventListener("show-annotation", (e) => {
-      console.log("show-annotation");
       const annotation = this.annotationsByValue.get(e.detail.value);
       const pos = getPosition(e.detail.range);
       onAnnotationClick({ annotation, pos });
@@ -557,7 +555,8 @@ class Reader {
   #onRelocate({ detail }) {
     const { cfi, fraction, location, tocItem, pageItem } = detail;
     this.currentChapter = tocItem?.label || this.bookObj.title;
-    const percent = percentFormat.format(fraction);
+    const safeFraction = isNaN(fraction) ? 0 : fraction;
+    const percent = percentFormat.format(safeFraction);
     const loc = pageItem ? `Page ${pageItem.label}` : `Loc ${location.current}`;
     // const slider = $("#progress-slider");
     // const currentPercent = $("#current-percent");

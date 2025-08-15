@@ -36,6 +36,7 @@ export class TOCProgress {
         this.getFragment = getFragment
     }
     getProgress(index, range) {
+
         if (!this.ids) return
         const id = this.ids[index]
         const obj = this.map.get(id)

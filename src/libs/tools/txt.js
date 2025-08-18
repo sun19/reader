@@ -340,7 +340,7 @@ export class TXTBook {
             h1 {
               font-size: 1.5em;
             }
-          }
+        }
         </style>
       </head>
       <body>
@@ -375,7 +375,148 @@ export class TXTBook {
     }
     return null;
   }
+  // 解析TXT格式的自定义CFI
+  resolveCFI(cfi) {
+    try {
+      // 首先去掉epubcfi()包装（如果存在）
+      const isCFI = /^epubcfi\((.*)\)$/;
+      const unwrappedCFI = cfi.match(isCFI)?.[1] ?? cfi;
 
+      // 尝试解析简单的CFI格式: /6/{index}[{chapterId}]!
+      const simpleMatch = unwrappedCFI.match(/^\/6\/(\d+)\[([^\]]+)\]!$/);
+      if (simpleMatch) {
+        const index = parseInt(simpleMatch[1]) - 2; // 减去2，因为generateSections中使用了index + 2
+        const chapterId = simpleMatch[2];
+
+        // 验证索引是否有效
+        if (index >= 0 && index < this.chapters.length) {
+          const chapter = this.chapters[index];
+          // 验证章节ID是否匹配
+          if (chapter.id === chapterId) {
+            return {
+              index: index,
+              anchor: (doc) => {
+                // 返回章节内容的开始位置
+                const contentElement = doc.getElementById("content");
+                if (contentElement) {
+                  // 创建一个范围对象，指向章节开始
+                  const range = doc.createRange();
+                  range.selectNodeContents(contentElement);
+                  range.collapse(true); // 折叠到开始位置
+                  return range;
+                }
+                return null;
+              }
+            };
+          }
+        }
+      }
+
+      // 尝试解析复杂的epubcfi格式: /6/{index}[{chapterId}]!!/4/2[content],/path/to/element:offset
+      const complexMatch = unwrappedCFI.match(/^\/6\/(\d+)\[([^\]]+)\]!!\/4\/2\[content\],(.+)$/);
+      if (complexMatch) {
+        const index = parseInt(complexMatch[1]) - 2; // 减去2，因为generateSections中使用了index + 2
+        const chapterId = complexMatch[2];
+        const pathInfo = complexMatch[3]; // 获取路径信息，如 /48,/76/1:40
+
+        // 验证索引是否有效
+        if (index >= 0 && index < this.chapters.length) {
+          const chapter = this.chapters[index];
+          // 验证章节ID是否匹配
+          if (chapter.id === chapterId) {
+            // 修改正则表达式以匹配逗号分隔的路径格式，如 /48,/76/1:40
+            const pathMatch = pathInfo.match(/^(\/(\d+)(?:,\/(\d+))*)\/(\d+):(\d+)$/);
+            console.log(pathMatch)
+
+            if (pathMatch) {
+              const pageNumber = parseInt(pathMatch[4]); // 提取页数
+              const offset = parseInt(pathMatch[5]); // 提取字符偏移量
+
+              return {
+                index: index,
+                anchor: (doc) => {
+                  const contentElement = doc.getElementById("content");
+                  if (contentElement) {
+                    // 创建一个范围对象
+                    const range = doc.createRange();
+                    range.selectNodeContents(contentElement);
+
+                    // 优先使用页数定位
+                    if (pageNumber > 0) {
+                      try {
+                        // 查找所有页面元素（假设页面有特定的class或结构）
+                        const pageElements = contentElement.querySelectorAll('#footer');
+                        if (pageElements.length > 0 && pageNumber <= pageElements.length) {
+                          // 定位到指定页面的开始位置
+                          const targetPage = pageElements[pageNumber - 1]; // 页码从1开始，数组从0开始
+                          range.selectNodeContents(targetPage);
+                          range.collapse(true);
+                          return range;
+                        }
+                      } catch (e) {
+                        console.warn('定位到指定页面失败，尝试使用字符偏移量:', e);
+                      }
+                    }
+
+                    // 如果页数定位失败，尝试使用字符偏移量定位
+                    if (offset > 0) {
+                      try {
+                        // 遍历所有文本节点，计算字符位置
+                        const walker = doc.createTreeWalker(
+                          contentElement,
+                          NodeFilter.SHOW_TEXT,
+                          null,
+                          false
+                        );
+
+                        let currentOffset = 0;
+                        let targetNode = null;
+                        let nodeOffset = 0;
+
+                        while (walker.nextNode()) {
+                          const node = walker.currentNode;
+                          const textLength = node.textContent.length;
+
+                          if (currentOffset + textLength >= offset) {
+                            targetNode = node;
+                            nodeOffset = offset - currentOffset;
+                            break;
+                          }
+
+                          currentOffset += textLength;
+                        }
+
+                        if (targetNode) {
+                          // 定位到具体的字符位置
+                          range.setStart(targetNode, nodeOffset);
+                          range.setEnd(targetNode, nodeOffset);
+                          return range;
+                        }
+                      } catch (e) {
+                        console.warn('定位到具体字符位置失败，使用章节开始位置:', e);
+                      }
+                    }
+
+                    // 如果都没有成功，返回章节开始位置
+                    range.collapse(true);
+                    return range;
+                  }
+                  return null;
+                }
+              };
+            }
+          }
+        }
+      }
+
+      // 如果都无法解析，返回null
+      console.warn('无法解析TXT格式的CFI:', cfi);
+      return null;
+    } catch (error) {
+      console.error('解析TXT格式CFI时出错:', error);
+      return null;
+    }
+  }
   getTOC() {
     return this.toc;
   }

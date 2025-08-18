@@ -166,9 +166,6 @@ export const makeBook = async (file) => {
       const { EPUB } = await import("./tools/epub.js");
       book = await new EPUB(loader).init();
     }
-  } else if (await isPDF(file)) {
-    const { makePDF } = await import("./tools/pdf.js");
-    book = await makePDF(file);
   } else {
     const { isMOBI, MOBI } = await import("./tools/mobi.js");
     if (await isMOBI(file)) {

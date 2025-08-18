@@ -11,7 +11,6 @@ struct Book {
     author: String,
     file_path: String,
     file_type: String,
-    cover_url: Option<String>,
     cover_data: Option<String>, // Base64编码的封面数据
     last_read: Option<String>,
     created_at: String,
@@ -93,7 +92,6 @@ async fn get_book_info(book_data: BookData) -> Result<Book, String> {
     let mut title = book_data.title;
     let mut author = book_data.author;
     let mut cover_data: Option<String> = None;
-    let mut cover_url: Option<String> = None;
 
     // 如果是EPUB文件，尝试提取元数据
     if file_type == "epub" {
@@ -123,7 +121,6 @@ async fn get_book_info(book_data: BookData) -> Result<Book, String> {
         author,
         file_path: book_data.file_path,
         file_type,
-        cover_url,
         cover_data,
         last_read: None,
         created_at: chrono::Utc::now().to_rfc3339(),

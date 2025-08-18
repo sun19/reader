@@ -78,6 +78,12 @@ export class SectionProgress {
         const sizeBefore = sizes.slice(0, index).reduce((a, b) => a + b, 0)
         const size = sizeBefore + fractionInSection * sizeInSection
         const nextSize = size + pageFraction * sizeInSection
+
+        // 修正：确保next至少比current大1，除非已经在最后一页
+        const current = Math.floor(size / sizePerLoc)
+        const total = Math.ceil(sizeTotal / sizePerLoc)
+        const next = Math.min(current + 1, total)
+
         const remainingTotal = sizeTotal - size
         const remainingSection = (1 - fractionInSection) * sizeInSection
         return {
@@ -87,9 +93,9 @@ export class SectionProgress {
                 total: sizes.length,
             },
             location: {
-                current: Math.floor(size / sizePerLoc),
-                next: Math.floor(nextSize / sizePerLoc),
-                total: Math.ceil(sizeTotal / sizePerLoc),
+                current: current,
+                next: next,
+                total: total,
             },
             time: {
                 section: remainingSection / sizePerTimeUnit,

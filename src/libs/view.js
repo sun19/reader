@@ -167,7 +167,6 @@ export const makeBook = async (file) => {
       book = await new EPUB(loader).init();
     }
   } else if (await isPDF(file)) {
-    console.log("isPDF");
     const { makePDF } = await import("./tools/pdf.js");
     book = await makePDF(file);
   } else {
@@ -184,7 +183,6 @@ export const makeBook = async (file) => {
       book = await makeTXTBook(file);
     }
   }
-  console.log(book)
   const blobCover = await book.getCover();
   if (blobCover) {
     const strCover = await img2str(blobCover);
@@ -429,6 +427,21 @@ export class View extends HTMLElement {
     const tocItem = this.#tocProgress?.getProgress(index, range);
     const pageItem = this.#pageProgress?.getProgress(index, range);
     const cfi = this.getCFI(index, range);
+
+    // 确保location.current不为null
+    if (progress.location && progress.location.current === null) {
+      progress.location.current = 0;
+    }
+
+    // 如果location对象不存在，创建默认值
+    if (!progress.location) {
+      progress.location = {
+        current: 0,
+        next: 1,
+        total: 1
+      };
+    }
+
     this.lastLocation = { ...progress, tocItem, pageItem, cfi, range };
     if (reason === "snap" || reason === "page" || reason === "scroll")
       this.history.replaceState(cfi);

@@ -1086,8 +1086,16 @@ export class Paginator extends HTMLElement {
       }
     } else {
       // 当pages <= 0时，设置fraction为0
-      detail.fraction = 0;
-      detail.size = 1;
+      if (this.scrolled) {
+        detail.fraction = this.start / this.viewSize;
+        detail.size = Math.min(1 / Math.max(this.pages, 1), 1);
+      } else {
+        // 基于当前页面位置计算fraction，确保翻页时fraction会变化
+        const currentPage = Math.max(0, this.page || 0);
+        const totalPages = Math.max(1, this.pages || 1);
+        detail.fraction = Math.min(currentPage / Math.max(totalPages - 1, 1), 1);
+        detail.size = Math.min(1 / Math.max(totalPages - 1, 1), 1);
+      }
     }
 
 

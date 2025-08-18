@@ -250,6 +250,13 @@ export class TXTBook {
       href: chapter.href,
       subitems: []
     }));
+
+    // 添加pageList属性，基于章节生成页面信息
+    this.pageList = this.chapters.map((chapter, index) => ({
+      label: (index + 1).toString(), // 页码从1开始
+      href: chapter.href,
+      title: `Page ${index + 1}`
+    }));
   }
 
   // 获取指定章节的内容
@@ -266,13 +273,15 @@ export class TXTBook {
   }
   // 分割目录链接
   splitTOCHref(href) {
-    // 对于TXT文件，我们假设href直接指向章节ID
-    return [href.replace(/^#/, ''), null];
+    // 对于TXT文件，href格式可能是 "chapter-0.html" 或 "chapter-0"
+    // 提取章节ID部分
+    const cleanHref = href.replace(/^#/, '').replace(/\.html$/, '');
+    return [cleanHref, null];
   }
   // 获取目录片段
   async getTOCFragment(id) {
     // 查找对应ID的章节
-    const chapter = this.chapters.find(ch => ch.id === id);
+    const chapter = this.chapters.find(ch => ch.id === id || ch.href === id || ch.href.replace(/\.html$/, '') === id);
     if (!chapter) return null;
 
     // 返回章节的标题和内容片段

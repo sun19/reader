@@ -270,7 +270,27 @@ class Reader {
     this.view.renderer.setStyles?.(getCSS(style));
     if (!bookObj.last_read_position) this.view.renderer.next();
     this.setView(this.view);
-    await this.view.init({ lastLocation: bookObj.last_read_position });
+
+    // 修改：如果有保存的页数信息，优先使用页数跳转
+    if (bookObj.current_page) {
+      await this.view.init({ lastLocation: bookObj.last_read_position });
+      // 尝试跳转到指定页数
+      try {
+        const pageNum = parseInt(bookObj.current_page) + 1;
+        // 通过页码计算fraction：页码 * sizePerLoc / 总大小
+        const sizePerLoc = 1500; // 与view.js中一致的sizePerLoc
+        const totalSize = this.view.book.sections.reduce((sum, section) =>
+          sum + (section.linear !== 'no' && section.size > 0 ? section.size : 0), 0);
+        const fraction = (pageNum * sizePerLoc) / totalSize;
+        await this.view.goToFraction(Math.min(Math.max(fraction, 0), 1));
+      } catch (e) {
+        console.warn('跳转到指定页数失败，使用CFI位置:', e);
+        await this.view.goTo(bookObj.last_read_position);
+      }
+    } else {
+      await this.view.init({ lastLocation: bookObj.last_read_position });
+    }
+
     // const slider = $("#progress-slider");
     // slider.dir = book.dir;
     // slider.addEventListener("input", (e) =>
@@ -554,6 +574,7 @@ class Reader {
   //
   #onRelocate({ detail }) {
     const { cfi, fraction, location, tocItem, pageItem } = detail;
+
     this.currentChapter = tocItem?.label || this.bookObj.title;
     const safeFraction = isNaN(fraction) ? 0 : fraction;
     const percent = percentFormat.format(safeFraction);
@@ -566,13 +587,14 @@ class Reader {
     // if (tocItem?.label) $(".chapter-title").innerText = this.currentChapter;
     // else $(".chapter-title").innerText = this.bookObj.title;
     if (tocItem?.href) this.#tocView?.setCurrentHref?.(tocItem.href);
-    //保存到当前阅读记录
+    //保存到当前阅读记录，修正为保存当前阅读页码
     BookData.updateBook({
       ...this.bookObj,
       id: this.bookId,
       last_read_position: cfi,
       reading_percentage: percent,
       current_chapter: this.currentChapter,
+      current_page: location?.current?.toString() || null, // 修正：保存当前阅读到第几页
     });
     this.view.renderer.updatePageNumber(style.fontColor, this.currentChapter);
     //页面更新重新读取
